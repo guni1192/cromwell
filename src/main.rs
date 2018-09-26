@@ -1,13 +1,13 @@
-use std::fs;
-use std::env::{set_var, args};
-use std::process::*;
-use std::ffi::CString;
+use nix::mount::{mount, MsFlags};
+use nix::sched::*; // 調べる
+use nix::sys::wait::*;
+use nix::unistd::*;
 use nix::unistd::*;
 use nix::unistd::{execv, fork, ForkResult};
-use nix::sched::*; // 調べる
-use nix::unistd::*;
-use nix::sys::wait::*;
-use nix::mount::{mount, MsFlags};
+use std::env::{args, set_var};
+use std::ffi::CString;
+use std::fs;
+use std::process::*;
 
 fn print_help() {}
 
@@ -27,8 +27,8 @@ fn main() {
     let container_path = args[1].as_str();
 
     match unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS) {
-        Ok(_) => {},
-        Err(e) => eprintln!("{}", e)
+        Ok(_) => {}
+        Err(e) => eprintln!("{}", e),
     }
 
     fs::create_dir_all(container_path).unwrap();
@@ -40,7 +40,6 @@ fn main() {
         MsFlags::MS_PRIVATE,
         None::<&str>,
     ).expect("Can not mount specify dir.");
-
 
     mount(
         Some(container_path),
@@ -55,7 +54,7 @@ fn main() {
     chdir("/").expect("cd / faild.");
 
     match fork() {
-        Ok(ForkResult::Parent{ child, .. }) => {
+        Ok(ForkResult::Parent { child, .. }) => {
             // 親プロセスは待つだけ
             match waitpid(child, None).expect("wait_pid faild") {
                 WaitStatus::Exited(pid, status) => {
@@ -88,10 +87,7 @@ fn main() {
             let arg = CString::new("-l".to_string()).unwrap();
 
             execv(&dir, &[dir.clone(), arg]).expect("execution faild.");
-
         }
         Err(_) => eprintln!("Fork failed"),
     }
-
-
 }
