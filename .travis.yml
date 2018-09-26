@@ -6,3 +6,4 @@ before_script:
 script:
   - cargo fmt --all -- --check
   - cargo build --verbose --all
+  - cargo test
