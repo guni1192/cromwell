@@ -5,9 +5,8 @@ matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
-
 before_script:
-- rustup component add rustfmt-preview
+  - rustup component add rustfmt-preview
 script:
   - cargo build --verbose --all
   - cargo fmt --all -- --check
