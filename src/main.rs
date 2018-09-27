@@ -12,14 +12,13 @@ fn print_help() {
     println!("help message");
 }
 
-// TODO Bootstrap func
 fn bootstrap_container(container_path: &str) -> Result<&str, &str> {
     match Command::new("pacstrap")
         .arg("-i")
         .arg(format!("{}", container_path))
         .arg("base")
         .arg("--noconfirm")
-        .spawn()
+        .output()
     {
         Ok(_) => Ok("Bootstrap Done"),
         Err(_) => Err("Faild Bootstrap"),
@@ -63,11 +62,6 @@ fn main() {
     unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS | CloneFlags::CLONE_NEWNET)
         .expect("Can not unshare(2).");
 
-    match bootstrap_container(container_path) {
-        Ok(m) => println!("{:?}", m),
-        Err(e) => eprintln!("{:?}", e),
-    };
-
     mount(
         None::<&str>,
         "/",
@@ -93,7 +87,7 @@ fn main() {
     match fork() {
         Ok(ForkResult::Parent { child, .. }) => {
             // 親プロセスは待つだけ
-            match waitpid(child, None).expect("wait_pid faild") {
+            match waitpid(child, None).expect("waitpid faild") {
                 WaitStatus::Exited(pid, status) => {
                     println!("Exit: pid: {:?}, status: {:?}", pid, status)
                 }
