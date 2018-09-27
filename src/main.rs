@@ -46,7 +46,8 @@ fn main() {
         None::<&str>,
         MsFlags::MS_PRIVATE,
         None::<&str>,
-    ).expect("Can not mount specify dir.");
+    )
+    .expect("Can not mount specify dir.");
 
     mount(
         Some(container_path),
@@ -54,7 +55,8 @@ fn main() {
         None::<&str>,
         MsFlags::MS_BIND | MsFlags::MS_REC,
         None::<&str>,
-    ).expect("Can not mount root dir.");
+    )
+    .expect("Can not mount root dir.");
 
     chroot(container_path).expect("chroot failed.");
 
@@ -87,7 +89,8 @@ fn main() {
                 Some("proc"),
                 MsFlags::MS_MGC_VAL,
                 None::<&str>,
-            ).expect("mount procfs faild.");
+            )
+            .expect("mount procfs faild.");
 
             let dir = CString::new("/bin/bash".to_string()).unwrap();
             let arg = CString::new("-l".to_string()).unwrap();
