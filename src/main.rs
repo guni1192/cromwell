@@ -6,12 +6,25 @@ use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
 use std::env::{args, set_var};
 use std::ffi::CString;
 use std::fs;
+use std::process::Command;
 
 fn print_help() {
     println!("help message");
 }
 
 // TODO Bootstrap func
+fn bootstrap_container(container_path: &str) -> Result<&str, &str> {
+    match Command::new("pacstrap")
+        .arg("-i")
+        .arg(format!("{}", container_path))
+        .arg("base")
+        .arg("--noconfirm")
+        .spawn()
+    {
+        Ok(_) => Ok("Bootstrap Done"),
+        Err(_) => Err("Faild Bootstrap"),
+    }
+}
 
 fn main() {
     // debug
@@ -22,6 +35,7 @@ fn main() {
     let mut opts = Options::new();
     opts.optopt("", "path", "set container path", "CONTAINER PATH");
     opts.optflag("h", "help", "print help message");
+    opts.optflag("", "init", "exec pacstrap");
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -36,12 +50,23 @@ fn main() {
     let container_path = matches.opt_str("path").unwrap();
     let container_path = container_path.as_str();
 
-    match unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS | CloneFlags::CLONE_NEWNET) {
-        Ok(_) => {}
-        Err(e) => eprintln!("{}", e),
+    fs::create_dir_all(container_path).unwrap();
+
+    if matches.opt_present("init") {
+        match bootstrap_container(container_path) {
+            Ok(m) => println!("{:?}", m),
+            Err(e) => eprintln!("{:?}", e),
+        };
+        return;
     }
 
-    fs::create_dir_all(container_path).unwrap();
+    unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS | CloneFlags::CLONE_NEWNET)
+        .expect("Can not unshare(2).");
+
+    match bootstrap_container(container_path) {
+        Ok(m) => println!("{:?}", m),
+        Err(e) => eprintln!("{:?}", e),
+    };
 
     mount(
         None::<&str>,
