@@ -1,15 +1,17 @@
 use nix::mount::{mount, MsFlags};
-use nix::sched::*; // 調べる
+use nix::sched::*;
 use nix::sys::wait::*;
 use nix::unistd::*;
-use nix::unistd::*;
-use nix::unistd::{execv, fork, ForkResult};
+// use nix::unistd::{execv, fork, ForkResult};
+use getopts::Options;
 use std::env::{args, set_var};
 use std::ffi::CString;
 use std::fs;
 use std::process::*;
 
-fn print_help() {}
+fn print_help() {
+    println!("help message");
+}
 
 // TODO Bootstrap func
 
@@ -18,13 +20,22 @@ fn main() {
     set_var("RUST_BACKTRACE", "1");
 
     let args: Vec<String> = args().collect();
-    if args.len() < 2 {
-        eprintln!("invalid argments");
+
+    let mut opts = Options::new();
+    opts.optopt("", "path", "set container path", "CONTAINER PATH");
+    opts.optflag("h", "help", "print help message");
+
+    let matches = match opts.parse(&args[1..]) {
+        Ok(m) => m,
+        Err(f) => panic!(f.to_string()),
+    };
+    if matches.opt_present("h") {
         print_help();
-        exit(1);
+        return;
     }
 
-    let container_path = args[1].as_str();
+    let container_path = matches.opt_str("path").unwrap();
+    let container_path = container_path.as_str();
 
     match unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS) {
         Ok(_) => {}
@@ -39,7 +50,8 @@ fn main() {
         None::<&str>,
         MsFlags::MS_PRIVATE,
         None::<&str>,
-    ).expect("Can not mount specify dir.");
+    )
+    .expect("Can not mount specify dir.");
 
     mount(
         Some(container_path),
@@ -47,7 +59,8 @@ fn main() {
         None::<&str>,
         MsFlags::MS_BIND | MsFlags::MS_REC,
         None::<&str>,
-    ).expect("mount root dir faild.");
+    )
+    .expect("Can not mount root dir.");
 
     chroot(container_path).expect("chroot failed.");
 
@@ -81,7 +94,8 @@ fn main() {
                 Some("proc"),
                 MsFlags::MS_MGC_VAL,
                 None::<&str>,
-            ).expect("mount procfs faild.");
+            )
+            .expect("mount procfs faild.");
 
             let dir = CString::new("/bin/bash".to_string()).unwrap();
             let arg = CString::new("-l".to_string()).unwrap();
