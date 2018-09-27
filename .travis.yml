@@ -7,7 +7,7 @@ script:
   - cargo fmt --all -- --check
   - cargo build --verbose --all
   - cargo test
- notifications:
+notifications:
   slack:
     rooms:
       - guni-safehouse:jCLEw1jQKtWWAHbvdd1E09Id#ace
