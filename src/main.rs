@@ -1,13 +1,11 @@
+use getopts::Options;
 use nix::mount::{mount, MsFlags};
 use nix::sched::*;
-use nix::sys::wait::*;
-use nix::unistd::*;
-// use nix::unistd::{execv, fork, ForkResult};
-use getopts::Options;
+use nix::sys::wait::{waitpid, WaitStatus};
+use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
 use std::env::{args, set_var};
 use std::ffi::CString;
 use std::fs;
-use std::process::*;
 
 fn print_help() {
     println!("help message");
@@ -29,6 +27,7 @@ fn main() {
         Ok(m) => m,
         Err(f) => panic!(f.to_string()),
     };
+
     if matches.opt_present("h") {
         print_help();
         return;
@@ -37,7 +36,7 @@ fn main() {
     let container_path = matches.opt_str("path").unwrap();
     let container_path = container_path.as_str();
 
-    match unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS) {
+    match unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS | CloneFlags::CLONE_NEWNET) {
         Ok(_) => {}
         Err(e) => eprintln!("{}", e),
     }
