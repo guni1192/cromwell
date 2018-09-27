@@ -1,3 +1,8 @@
+mod bootstrap;
+mod help;
+
+use self::bootstrap::pacstrap;
+use self::help::print_help;
 use getopts::Options;
 use nix::mount::{mount, MsFlags};
 use nix::sched::*;
@@ -6,24 +11,6 @@ use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
 use std::env::{args, set_var};
 use std::ffi::CString;
 use std::fs;
-use std::process::Command;
-
-fn print_help() {
-    println!("help message");
-}
-
-fn bootstrap_container(container_path: &str) -> Result<&str, &str> {
-    match Command::new("pacstrap")
-        .arg("-i")
-        .arg(format!("{}", container_path))
-        .arg("base")
-        .arg("--noconfirm")
-        .output()
-    {
-        Ok(_) => Ok("Bootstrap Done"),
-        Err(_) => Err("Faild Bootstrap"),
-    }
-}
 
 fn main() {
     // debug
@@ -52,7 +39,7 @@ fn main() {
     fs::create_dir_all(container_path).unwrap();
 
     if matches.opt_present("init") {
-        match bootstrap_container(container_path) {
+        match pacstrap(container_path) {
             Ok(m) => println!("{:?}", m),
             Err(e) => eprintln!("{:?}", e),
         };
