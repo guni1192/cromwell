@@ -1,9 +1,10 @@
 mod bootstrap;
 mod help;
+mod options;
 
 use self::bootstrap::pacstrap;
 use self::help::print_help;
-use getopts::Options;
+use self::options::get_options;
 use nix::mount::{mount, MsFlags};
 use nix::sched::*;
 use nix::sys::wait::{waitpid, WaitStatus};
@@ -18,15 +19,7 @@ fn main() {
 
     let args: Vec<String> = args().collect();
 
-    let mut opts = Options::new();
-    opts.optopt("", "path", "set container path", "CONTAINER PATH");
-    opts.optflag("h", "help", "print help message");
-    opts.optflag("", "init", "exec pacstrap");
-
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => m,
-        Err(f) => panic!(f.to_string()),
-    };
+    let matches = get_options(args).expect("Invalid arguments");
 
     if matches.opt_present("h") {
         print_help();
