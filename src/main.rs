@@ -14,9 +14,6 @@ use std::ffi::CString;
 use std::fs;
 
 fn main() {
-    // debug
-    set_var("RUST_BACKTRACE", "1");
-
     let args: Vec<String> = args().collect();
 
     let matches = get_options(args).expect("Invalid arguments");
@@ -80,7 +77,6 @@ fn main() {
         Ok(ForkResult::Child) => {
             // Setting Host
             sethostname("archlinux-test-container").expect("sethostname faild.");
-            // TODO: locale
 
             fs::create_dir_all("proc").unwrap_or_else(|why| {
                 eprintln!("{:?}", why.kind());
