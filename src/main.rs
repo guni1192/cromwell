@@ -9,9 +9,10 @@ use nix::mount::{mount, MsFlags};
 use nix::sched::*;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
-use std::env::{args, set_var};
+use std::env::args;
 use std::ffi::CString;
 use std::fs;
+use std::path::Path;
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -28,7 +29,7 @@ fn main() {
 
     fs::create_dir_all(container_path).unwrap();
 
-    if matches.opt_present("init") {
+    if matches.opt_present("init") || !Path::new(&format!("{}/etc", container_path)).exists() {
         match pacstrap(container_path) {
             Ok(m) => println!("{:?}", m),
             Err(e) => eprintln!("{:?}", e),
@@ -45,8 +46,7 @@ fn main() {
         None::<&str>,
         MsFlags::MS_PRIVATE,
         None::<&str>,
-    )
-    .expect("Can not mount specify dir.");
+    ).expect("Can not mount specify dir.");
 
     mount(
         Some(container_path),
@@ -54,8 +54,7 @@ fn main() {
         None::<&str>,
         MsFlags::MS_BIND | MsFlags::MS_REC,
         None::<&str>,
-    )
-    .expect("Can not mount root dir.");
+    ).expect("Can not mount root dir.");
 
     chroot(container_path).expect("chroot failed.");
 
@@ -88,8 +87,7 @@ fn main() {
                 Some("proc"),
                 MsFlags::MS_MGC_VAL,
                 None::<&str>,
-            )
-            .expect("mount procfs faild.");
+            ).expect("mount procfs faild.");
 
             let dir = CString::new("/bin/bash".to_string()).unwrap();
             let arg = CString::new("-l".to_string()).unwrap();
