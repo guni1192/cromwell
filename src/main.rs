@@ -1,5 +1,5 @@
 use nix::mount::{mount, MsFlags};
-use nix::sched::*; // 調べる
+use nix::sched::*;
 use nix::sys::wait::*;
 use nix::unistd::*;
 // use nix::unistd::{execv, fork, ForkResult};
@@ -37,9 +37,6 @@ fn main() {
     let container_path = matches.opt_str("path").unwrap();
     let container_path = container_path.as_str();
 
-    println!("{:?}", container_path);
-    // let container_path = args[1].as_str();
-
     match unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS) {
         Ok(_) => {}
         Err(e) => eprintln!("{}", e),
@@ -61,7 +58,7 @@ fn main() {
         None::<&str>,
         MsFlags::MS_BIND | MsFlags::MS_REC,
         None::<&str>,
-    ).expect("mount root dir faild.");
+    ).expect("Can not mount root dir.");
 
     chroot(container_path).expect("chroot failed.");
 
