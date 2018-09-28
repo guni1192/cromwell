@@ -16,6 +16,10 @@ use std::path::Path;
 
 fn main() {
     let args: Vec<String> = args().collect();
+    if args.len() < 2 {
+        print_help();
+        return;
+    }
 
     let matches = get_options(args).expect("Invalid arguments");
 
@@ -24,7 +28,16 @@ fn main() {
         return;
     }
 
-    let container_path = matches.opt_str("path").unwrap();
+    let command = match matches.opt_str("exec") {
+        Some(c) => c,
+        None => "/bin/bash".to_string(),
+    };
+
+    println!("{:?}", command);
+
+    let container_path = matches
+        .opt_str("path")
+        .expect("invalied arguments about path");
     let container_path = container_path.as_str();
 
     fs::create_dir_all(container_path).unwrap();
@@ -63,12 +76,8 @@ fn main() {
         Ok(ForkResult::Parent { child, .. }) => {
             // 親プロセスは待つだけ
             match waitpid(child, None).expect("waitpid faild") {
-                WaitStatus::Exited(pid, status) => {
-                    println!("Exit: pid: {:?}, status: {:?}", pid, status)
-                }
-                WaitStatus::Signaled(pid, status, _) => {
-                    println!("Signal: pid={:?}, status={:?}", pid, status)
-                }
+                WaitStatus::Exited(_, _) => {}
+                WaitStatus::Signaled(_, _, _) => {}
                 _ => eprintln!("Unexpected exit."),
             }
         }
@@ -89,10 +98,10 @@ fn main() {
             )
             .expect("mount procfs faild.");
 
-            let dir = CString::new("/bin/bash".to_string()).unwrap();
-            let arg = CString::new("-l".to_string()).unwrap();
+            let dir = CString::new(command).unwrap();
+            // let arg = CString::new("-l".to_string()).unwrap();
 
-            execv(&dir, &[dir.clone(), arg]).expect("execution faild.");
+            execv(&dir, &[dir.clone()]).expect("execution faild.");
         }
         Err(_) => eprintln!("Fork failed"),
     }
