@@ -10,3 +10,5 @@ pub fn pacstrap(container_path: &str) {
         .expect("Faild Bootstrap");
     pacstrap.wait();
 }
+
+// TODO: debootstrap
