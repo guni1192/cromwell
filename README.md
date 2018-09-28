@@ -4,4 +4,10 @@
 
 ArchLinux Container Engine
 
+```bash
+$ pacstrap -i /mnt base
+$ ace --init /<COTAINER PATH>
+$ ace --path /<CONTAINER PATH>
+```
+
 

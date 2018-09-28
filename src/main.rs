@@ -1,34 +1,24 @@
+mod bootstrap;
+mod help;
+mod options;
+
+use self::bootstrap::pacstrap;
+use self::help::print_help;
+use self::options::get_options;
 use nix::mount::{mount, MsFlags};
 use nix::sched::*;
-use nix::sys::wait::*;
-use nix::unistd::*;
-// use nix::unistd::{execv, fork, ForkResult};
-use getopts::Options;
-use std::env::{args, set_var};
+use nix::sys::wait::{waitpid, WaitStatus};
+use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
+use std::env::args;
 use std::ffi::CString;
 use std::fs;
-use std::process::*;
-
-fn print_help() {
-    println!("help message");
-}
-
-// TODO Bootstrap func
+use std::path::Path;
 
 fn main() {
-    // debug
-    set_var("RUST_BACKTRACE", "1");
-
     let args: Vec<String> = args().collect();
 
-    let mut opts = Options::new();
-    opts.optopt("", "path", "set container path", "CONTAINER PATH");
-    opts.optflag("h", "help", "print help message");
+    let matches = get_options(args).expect("Invalid arguments");
 
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => m,
-        Err(f) => panic!(f.to_string()),
-    };
     if matches.opt_present("h") {
         print_help();
         return;
@@ -37,12 +27,18 @@ fn main() {
     let container_path = matches.opt_str("path").unwrap();
     let container_path = container_path.as_str();
 
-    match unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS) {
-        Ok(_) => {}
-        Err(e) => eprintln!("{}", e),
+    fs::create_dir_all(container_path).unwrap();
+
+    if matches.opt_present("init") || !Path::new(&format!("{}/etc", container_path)).exists() {
+        match pacstrap(container_path) {
+            Ok(m) => println!("{:?}", m),
+            Err(e) => eprintln!("{:?}", e),
+        };
+        return;
     }
 
-    fs::create_dir_all(container_path).unwrap();
+    unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS | CloneFlags::CLONE_NEWNET)
+        .expect("Can not unshare(2).");
 
     mount(
         None::<&str>,
@@ -69,7 +65,7 @@ fn main() {
     match fork() {
         Ok(ForkResult::Parent { child, .. }) => {
             // 親プロセスは待つだけ
-            match waitpid(child, None).expect("wait_pid faild") {
+            match waitpid(child, None).expect("waitpid faild") {
                 WaitStatus::Exited(pid, status) => {
                     println!("Exit: pid: {:?}, status: {:?}", pid, status)
                 }
@@ -82,7 +78,6 @@ fn main() {
         Ok(ForkResult::Child) => {
             // Setting Host
             sethostname("archlinux-test-container").expect("sethostname faild.");
-            // TODO: locale
 
             fs::create_dir_all("proc").unwrap_or_else(|why| {
                 eprintln!("{:?}", why.kind());
