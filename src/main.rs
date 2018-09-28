@@ -30,10 +30,7 @@ fn main() {
     fs::create_dir_all(container_path).unwrap();
 
     if matches.opt_present("init") || !Path::new(&format!("{}/etc", container_path)).exists() {
-        match pacstrap(container_path) {
-            Ok(m) => println!("{:?}", m),
-            Err(e) => eprintln!("{:?}", e),
-        };
+        pacstrap(container_path);
         return;
     }
 
