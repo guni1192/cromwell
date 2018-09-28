@@ -4,9 +4,14 @@
 
 ArchLinux Container Engine
 
+## Dependency
+
+- arch-install-script
+  - pacstrap
+
+## Usage
+
 ```bash
-$ pacstrap -i /mnt base
-$ ace --init /<COTAINER PATH>
 $ ace --path /<CONTAINER PATH>
 ```
 
