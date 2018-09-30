@@ -9,12 +9,25 @@ use nix::mount::{mount, MsFlags};
 use nix::sched::*;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
+use std::env;
 use std::env::args;
 use std::ffi::CString;
 use std::fs;
 use std::path::Path;
 
 fn main() {
+    let ace_container_path = "ACE_CONTAINER_PATH";
+    // TODO: settting.rsからの読み込みに変更
+    env::set_var(ace_container_path, "/var/tmp/ace-containers");
+
+    let default_container_path = match env::var(ace_container_path) {
+        Ok(value) => value,
+        Err(e) => {
+            eprintln!("Could' not get {}: {}", ace_container_path, e);
+            std::process::exit(1);
+        }
+    };
+
     let args: Vec<String> = args().collect();
     if args.len() < 2 {
         print_help();
@@ -33,9 +46,10 @@ fn main() {
         None => "/bin/bash".to_string(),
     };
 
-    let container_path = matches
-        .opt_str("path")
-        .expect("invalied arguments about path");
+    let container_name = matches
+        .opt_str("name")
+        .expect("invalied arguments about container name");
+    let container_path = format!("{}/{}", default_container_path, container_name);
     let container_path = container_path.as_str();
 
     fs::create_dir_all(container_path).expect("Could not create directory to your path");
