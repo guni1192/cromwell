@@ -12,7 +12,7 @@ ArchLinux Container Engine
 ## Usage
 
 ```bash
-$ ace --path /<CONTAINER PATH>
+$ ace --name <CONTAINER name>
 ```
 
 
