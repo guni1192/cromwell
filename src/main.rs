@@ -106,9 +106,12 @@ fn main() {
             )
             .expect("mount procfs faild.");
 
-            let dir = CString::new(command).unwrap();
+            let cmd = CString::new(command.clone()).unwrap();
+            let default_shell = CString::new("/bin/bash").unwrap();
+            let shell_opt = CString::new("-c").unwrap();
 
-            execv(&dir, &[dir.clone()]).expect("execution faild.");
+            execv(&default_shell, &[default_shell.clone(), shell_opt, cmd])
+                .expect("execution faild.");
         }
         Err(_) => eprintln!("Fork failed"),
     }
