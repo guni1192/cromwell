@@ -8,7 +8,7 @@ use self::options::get_options;
 use nix::mount::{mount, MsFlags};
 use nix::sched::*;
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
+use nix::unistd::{chdir, chroot, execv, fork, ForkResult};
 use std::env::args;
 use std::ffi::CString;
 use std::fs;
@@ -33,22 +33,29 @@ fn main() {
         None => "/bin/bash".to_string(),
     };
 
-    println!("{:?}", command);
-
     let container_path = matches
         .opt_str("path")
         .expect("invalied arguments about path");
     let container_path = container_path.as_str();
 
-    fs::create_dir_all(container_path).unwrap();
+    fs::create_dir_all(container_path).expect("Could not create directory to your path");
 
-    if matches.opt_present("init") || !Path::new(&format!("{}/etc", container_path)).exists() {
+    if matches.opt_present("init") {
         pacstrap(container_path);
         return;
     }
 
-    unshare(CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS | CloneFlags::CLONE_NEWNET)
-        .expect("Can not unshare(2).");
+    if !Path::new(&format!("{}/etc", container_path)).exists() {
+        pacstrap(container_path);
+    }
+
+    unshare(
+        CloneFlags::CLONE_NEWPID
+            | CloneFlags::CLONE_NEWNS
+            | CloneFlags::CLONE_NEWNET
+            | CloneFlags::CLONE_FS,
+    )
+    .expect("Can not unshare(2).");
 
     mount(
         None::<&str>,
@@ -82,9 +89,6 @@ fn main() {
             }
         }
         Ok(ForkResult::Child) => {
-            // Setting Host
-            sethostname("archlinux-test-container").expect("sethostname faild.");
-
             fs::create_dir_all("proc").unwrap_or_else(|why| {
                 eprintln!("{:?}", why.kind());
             });
@@ -99,7 +103,6 @@ fn main() {
             .expect("mount procfs faild.");
 
             let dir = CString::new(command).unwrap();
-            // let arg = CString::new("-l".to_string()).unwrap();
 
             execv(&dir, &[dir.clone()]).expect("execution faild.");
         }
