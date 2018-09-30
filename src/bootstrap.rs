@@ -7,8 +7,8 @@ pub fn pacstrap(container_path: &str) {
         .arg("base")
         .arg("--noconfirm")
         .spawn()
-        .expect("Faild Bootstrap");
-    pacstrap.wait();
+        .expect("Failed Bootstrap");
+    pacstrap.wait().expect("Failed pacstrap waiting");
 }
 
 // TODO: debootstrap
