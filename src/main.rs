@@ -8,7 +8,7 @@ use self::options::get_options;
 use nix::mount::{mount, MsFlags};
 use nix::sched::*;
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, execv, fork, ForkResult};
+use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
 use std::env::args;
 use std::ffi::CString;
 use std::fs;
@@ -51,6 +51,8 @@ fn main() {
 
     unshare(
         CloneFlags::CLONE_NEWPID
+            | CloneFlags::CLONE_NEWIPC
+            | CloneFlags::CLONE_NEWUTS
             | CloneFlags::CLONE_NEWNS
             | CloneFlags::CLONE_NEWNET
             | CloneFlags::CLONE_FS,
@@ -89,6 +91,8 @@ fn main() {
             }
         }
         Ok(ForkResult::Child) => {
+            sethostname("container-hostname").expect("Could not set hostname");
+
             fs::create_dir_all("proc").unwrap_or_else(|why| {
                 eprintln!("{:?}", why.kind());
             });
