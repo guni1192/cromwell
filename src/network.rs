@@ -70,15 +70,3 @@ fn test_veth_peer_new() {
     assert_eq!(host_namespace, veth_peer.host_veth.namespace);
     assert_eq!(host_address, veth_peer.host_veth.address);
 }
-
-#[test]
-fn test_veth_add_network_namespace() {
-    let namespace = "ns00";
-    let address = "127.0.0.1";
-
-    let veth = Veth::new(namespace.to_string(), address.to_string());
-
-    assert_eq!(namespace, veth.namespace);
-    assert_eq!(address, veth.address);
-    assert!(veth.add_network_namespace().is_ok());
-}
