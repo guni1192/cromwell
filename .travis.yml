@@ -6,9 +6,7 @@ before_script:
 script:
   - cargo fmt --all -- --check
   - cargo build --verbose --all
-  # - cargo test
-  # network nsの分割のためroot
-  - sudo cargo test
+  - cargo test
 notifications:
   slack:
     rooms:
