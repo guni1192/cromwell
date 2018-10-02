@@ -5,6 +5,7 @@ pub fn pacstrap(container_path: &str) {
         .arg("-i")
         .arg(format!("{}", container_path))
         .arg("base")
+        .arg("net-tools")
         .arg("--noconfirm")
         .spawn()
         .expect("Failed Bootstrap");
