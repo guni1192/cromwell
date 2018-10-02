@@ -13,6 +13,7 @@ use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
 mod bootstrap;
 mod container;
 mod help;
+mod network;
 mod options;
 
 use self::bootstrap::pacstrap;
