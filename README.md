@@ -12,7 +12,11 @@ ArchLinux Container Engine
 ## Usage
 
 ```bash
-$ ace --name <CONTAINER name>
+$ ace --name <CONTAINER_NAME>
+[root@<CONTAINER_NAME> /]# 
 ```
 
-
+```bash
+$ ace --name <CONTAINER_NAME> --exec 'ls -a'
+bin  boot  dev  etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+```

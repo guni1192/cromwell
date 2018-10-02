@@ -1,3 +1,14 @@
+use std::env;
+use std::env::args;
+use std::ffi::CString;
+use std::fs;
+use std::path::Path;
+
+use nix::mount::{mount, MsFlags};
+use nix::sched::*;
+use nix::sys::wait::{waitpid, WaitStatus};
+use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
+
 mod bootstrap;
 mod help;
 mod options;
@@ -5,15 +16,6 @@ mod options;
 use self::bootstrap::pacstrap;
 use self::help::print_help;
 use self::options::get_options;
-use nix::mount::{mount, MsFlags};
-use nix::sched::*;
-use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
-use std::env;
-use std::env::args;
-use std::ffi::CString;
-use std::fs;
-use std::path::Path;
 
 fn main() {
     let ace_container_path = "ACE_CONTAINER_PATH";
@@ -31,14 +33,14 @@ fn main() {
     let args: Vec<String> = args().collect();
     if args.len() < 2 {
         print_help();
-        return;
+        std::process::exit(1);
     }
 
     let matches = get_options(args).expect("Invalid arguments");
 
     if matches.opt_present("h") {
         print_help();
-        return;
+        std::process::exit(0);
     }
 
     let command = match matches.opt_str("exec") {
@@ -105,7 +107,7 @@ fn main() {
             }
         }
         Ok(ForkResult::Child) => {
-            sethostname("container-hostname").expect("Could not set hostname");
+            sethostname(container_name).expect("Could not set hostname");
 
             fs::create_dir_all("proc").unwrap_or_else(|why| {
                 eprintln!("{:?}", why.kind());
