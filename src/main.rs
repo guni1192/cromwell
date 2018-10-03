@@ -13,6 +13,7 @@ use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
 mod bootstrap;
 mod container;
 mod help;
+mod mount;
 mod network;
 mod options;
 
@@ -98,7 +99,7 @@ fn main() {
         MsFlags::MS_PRIVATE,
         None::<&str>,
     )
-    .expect("Can not mount specify dir.");
+    .expect("Can not mount root dir.");
 
     mount(
         Some(container_path),
@@ -107,7 +108,7 @@ fn main() {
         MsFlags::MS_BIND | MsFlags::MS_REC,
         None::<&str>,
     )
-    .expect("Can not mount root dir.");
+    .expect("Can not mount specify dir.");
 
     chroot(container_path).expect("chroot failed.");
 
@@ -129,14 +130,7 @@ fn main() {
                 eprintln!("{:?}", why.kind());
             });
 
-            mount(
-                Some("proc"),
-                "/proc",
-                Some("proc"),
-                MsFlags::MS_MGC_VAL,
-                None::<&str>,
-            )
-            .expect("mount procfs faild.");
+            mount::mount_proc().expect("mount procfs faild.");
 
             let cmd = CString::new(command.clone()).unwrap();
             let default_shell = CString::new("/bin/bash").unwrap();
