@@ -14,7 +14,7 @@ mod bootstrap;
 mod container;
 mod help;
 mod mount;
-// mod network;
+mod network;
 mod options;
 
 use self::bootstrap::pacstrap;
@@ -44,6 +44,16 @@ fn main() {
 
     if matches.opt_present("help") {
         print_help();
+        exit(0);
+    }
+
+    if matches.opt_present("create-bridge") {
+        network::make_bridge_ace0().expect("Could not create bridge ace0");
+        exit(0);
+    }
+
+    if matches.opt_present("delete-bridge") {
+        network::delete_bridge_ace0().expect("Could not delete bridge ace0");
         exit(0);
     }
 
@@ -116,7 +126,6 @@ fn main() {
 
     match fork() {
         Ok(ForkResult::Parent { child, .. }) => {
-            // 親プロセスは待つだけ
             match waitpid(child, None).expect("waitpid faild") {
                 WaitStatus::Exited(_, _) => {}
                 WaitStatus::Signaled(_, _, _) => {}

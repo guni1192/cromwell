@@ -8,6 +8,8 @@ pub fn get_options(args: Vec<String>) -> Result<Matches, Fail> {
     opts.optflag("h", "help", "print help message");
     opts.optflag("", "init", "exec pacstrap");
     opts.optflag("", "del", "delete container");
+    opts.optflag("b", "create-bridge", "create brige");
+    opts.optflag("b", "delete-bridge", "delete brige");
 
     opts.parse(&args[1..])
 }

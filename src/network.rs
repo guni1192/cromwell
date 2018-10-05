@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::process::{Child, Command};
 
 struct Veth {
     namespace: String,
@@ -38,6 +38,20 @@ impl VethPeer {
             host_veth: host_veth,
         }
     }
+}
+
+pub fn make_bridge_ace0() -> std::io::Result<Child> {
+    // TODO: IPコマンドを使わない
+    Command::new("ip")
+        .args(&["link", "add", "name", "ace0", "type", "bridge"])
+        .spawn()
+}
+
+pub fn delete_bridge_ace0() -> std::io::Result<Child> {
+    // TODO: IPコマンドを使わない
+    Command::new("ip")
+        .args(&["link", "del", "name", "ace0"])
+        .spawn()
 }
 
 #[test]
