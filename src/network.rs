@@ -43,7 +43,7 @@ impl Network {
                 "veth",
                 "peer",
                 "name",
-                self.veth_guest.as_str()
+                self.veth_guest.as_str(),
             ])
             .status()
             .expect("");
@@ -55,11 +55,7 @@ impl Network {
     }
     fn del_veth(&self) -> Result<String, String> {
         let status = Command::new("ip")
-            .args(&[
-                "link",
-                "del",
-                self.veth_host.as_str(),
-            ])
+            .args(&["link", "del", self.veth_host.as_str()])
             .status()
             .expect("");
         if status.success() {
@@ -68,7 +64,6 @@ impl Network {
             Err("".to_string())
         }
     }
-
 }
 
 pub fn make_bridge_ace0() -> std::io::Result<Child> {
@@ -86,7 +81,6 @@ pub fn delete_bridge_ace0() -> std::io::Result<Child> {
 
 #[test]
 fn test_veth_new() {
-
     let network = Network::new(
         "test-ns".to_string(),
         "ace0".to_string(),

@@ -3,10 +3,11 @@ rust:
   - nightly
 before_script:
   - rustup component add rustfmt-preview
+sudo: true
 script:
-  - cargo fmt --all -- --check
+  - cargo fmt --all -- --check --verbose
   - cargo build --verbose --all
-  - cargo test
+  - sudo cargo test --verbose
 notifications:
   slack:
     rooms:
