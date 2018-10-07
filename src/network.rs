@@ -1,20 +1,24 @@
 use std::process::{Child, Command};
 
-struct Veth {
+struct Network {
+    veth_guest: String,
+    veth_host: String,
+    bridge_name: String,
     namespace: String,
-    address: String,
 }
 
-struct VethPeer {
-    host_veth: Veth,
-    guest_veth: Veth,
-}
-
-impl Veth {
-    pub fn new(namespace: String, address: String) -> Veth {
-        Veth {
+impl Network {
+    pub fn new(
+        namespace: String,
+        bridge_name: String,
+        veth_host: String,
+        veth_guest: String,
+    ) -> Network {
+        Network {
             namespace: namespace,
-            address: address,
+            bridge_name: bridge_name,
+            veth_host: veth_host,
+            veth_guest: veth_guest,
         }
     }
 
@@ -29,15 +33,42 @@ impl Veth {
             Err("".to_string())
         }
     }
-}
-
-impl VethPeer {
-    pub fn new(host_veth: Veth, guest_veth: Veth) -> VethPeer {
-        VethPeer {
-            guest_veth: guest_veth,
-            host_veth: host_veth,
+    fn add_veth(&self) -> Result<String, String> {
+        let status = Command::new("ip")
+            .args(&[
+                "link",
+                "add",
+                self.veth_host.as_str(),
+                "type",
+                "veth",
+                "peer",
+                "name",
+                self.veth_guest.as_str()
+            ])
+            .status()
+            .expect("");
+        if status.success() {
+            Ok("".to_string())
+        } else {
+            Err("".to_string())
         }
     }
+    fn del_veth(&self) -> Result<String, String> {
+        let status = Command::new("ip")
+            .args(&[
+                "link",
+                "del",
+                self.veth_host.as_str(),
+            ])
+            .status()
+            .expect("");
+        if status.success() {
+            Ok("".to_string())
+        } else {
+            Err("".to_string())
+        }
+    }
+
 }
 
 pub fn make_bridge_ace0() -> std::io::Result<Child> {
@@ -46,7 +77,6 @@ pub fn make_bridge_ace0() -> std::io::Result<Child> {
         .args(&["link", "add", "name", "ace0", "type", "bridge"])
         .spawn()
 }
-
 pub fn delete_bridge_ace0() -> std::io::Result<Child> {
     // TODO: IPコマンドを使わない
     Command::new("ip")
@@ -56,31 +86,14 @@ pub fn delete_bridge_ace0() -> std::io::Result<Child> {
 
 #[test]
 fn test_veth_new() {
-    let namespace = "ns00";
-    let address = "127.0.0.1";
 
-    let veth = Veth::new(namespace.to_string(), address.to_string());
+    let network = Network::new(
+        "test-ns".to_string(),
+        "ace0".to_string(),
+        "test_veth_host".to_string(),
+        "test_veth_guest".to_string(),
+    );
 
-    assert_eq!(namespace, veth.namespace);
-    assert_eq!(address, veth.address);
-}
-
-#[test]
-fn test_veth_peer_new() {
-    let host_namespace = "ns00";
-    let host_address = "127.0.0.1";
-
-    let guest_namespace = "ns01";
-    let guest_address = "10.0.0.1";
-
-    let host_veth = Veth::new(host_namespace.to_string(), host_address.to_string());
-    let guest_veth = Veth::new(guest_namespace.to_string(), guest_address.to_string());
-
-    let veth_peer = VethPeer::new(host_veth, guest_veth);
-
-    assert_eq!(guest_namespace, veth_peer.guest_veth.namespace);
-    assert_eq!(guest_address, veth_peer.guest_veth.address);
-
-    assert_eq!(host_namespace, veth_peer.host_veth.namespace);
-    assert_eq!(host_address, veth_peer.host_veth.address);
+    assert!(network.add_veth().is_ok());
+    assert!(network.del_veth().is_ok());
 }
