@@ -2,11 +2,11 @@ language: rust
 rust:
   - nightly
 before_script:
-  - rustup component add rustfmt-preview
+  - sudo rustup component add rustfmt-preview
 sudo: true
 script:
-  - cargo fmt --all -- --check --verbose
-  - cargo build --verbose --all
+  - sudo cargo fmt --all -- --check --verbose
+  - sudo cargo build --verbose --all
   - sudo cargo test --verbose
 notifications:
   slack:
