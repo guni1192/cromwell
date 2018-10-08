@@ -80,6 +80,7 @@ pub fn delete_bridge_ace0() -> std::io::Result<Child> {
 }
 
 #[test]
+#[ignore]
 fn test_veth_new() {
     let network = Network::new(
         "test-ns".to_string(),
