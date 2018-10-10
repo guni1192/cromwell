@@ -7,10 +7,8 @@ mod help;
 mod mount;
 mod network;
 mod options;
-mod runner;
 
 use self::help::print_help;
-use self::runner::run;
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -20,7 +18,7 @@ fn main() {
     }
 
     match &args[1][..] {
-        "run" => run(&args[1..]),
+        "run" => container::run(&args[1..]),
         "help" => {
             print_help();
             exit(0);

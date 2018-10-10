@@ -1,11 +1,6 @@
 use std::net::IpAddr;
 use std::process::{Child, Command};
 
-// NOW: デーモン: コンテナ = 1:1
-// TODO:
-// Network { Bridge }
-// Container.Network = { Network, VethPeer }
-
 struct Bridge {
     name: String,
     ip: IpAddr,
