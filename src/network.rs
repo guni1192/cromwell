@@ -22,7 +22,7 @@ impl Network {
         }
     }
 
-    fn add_network_namespace(&self) -> Result<String, String> {
+    pub fn add_network_namespace(&self) -> Result<String, String> {
         let status = Command::new("ip")
             .args(&["netns", "add", self.namespace.as_str()])
             .status()
@@ -33,7 +33,19 @@ impl Network {
             Err("".to_string())
         }
     }
-    fn add_veth(&self) -> Result<String, String> {
+    pub fn del_network_namespace(&self) -> Result<String, String> {
+        let status = Command::new("ip")
+            .args(&["netns", "del", self.namespace.as_str()])
+            .status()
+            .expect("");
+        if status.success() {
+            Ok("".to_string())
+        } else {
+            Err("".to_string())
+        }
+    }
+
+    pub fn add_veth(&self) -> Result<String, String> {
         let status = Command::new("ip")
             .args(&[
                 "link",
@@ -53,7 +65,7 @@ impl Network {
             Err("".to_string())
         }
     }
-    fn del_veth(&self) -> Result<String, String> {
+    pub fn del_veth(&self) -> Result<String, String> {
         let status = Command::new("ip")
             .args(&["link", "del", self.veth_host.as_str()])
             .status()
@@ -88,6 +100,9 @@ fn test_veth_new() {
         "test_veth_host".to_string(),
         "test_veth_guest".to_string(),
     );
+
+    assert!(network.add_network_namespace().is_ok());
+    assert!(network.del_network_namespace().is_ok());
 
     assert!(network.add_veth().is_ok());
     assert!(network.del_veth().is_ok());
