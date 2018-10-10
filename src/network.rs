@@ -1,9 +1,11 @@
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::process::{Child, Command};
 
 struct Network {
     veth_guest: String,
     veth_host: String,
     bridge_name: String,
+    bridge_ip: IpAddr,
     namespace: String,
 }
 
@@ -11,12 +13,14 @@ impl Network {
     pub fn new(
         namespace: String,
         bridge_name: String,
+        bridge_ip: IpAddr,
         veth_host: String,
         veth_guest: String,
     ) -> Network {
         Network {
             namespace: namespace,
             bridge_name: bridge_name,
+            bridge_ip: bridge_ip,
             veth_host: veth_host,
             veth_guest: veth_guest,
         }
@@ -97,6 +101,7 @@ fn test_veth_new() {
     let network = Network::new(
         "test-ns".to_string(),
         "ace0".to_string(),
+        "192.168.0.110".parse().unwrap(),
         "test_veth_host".to_string(),
         "test_veth_guest".to_string(),
     );
