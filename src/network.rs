@@ -1,6 +1,8 @@
 use std::net::IpAddr;
 use std::process::{Child, Command};
 
+use super::commands;
+
 struct Bridge {
     name: String,
     ip: IpAddr,
@@ -97,6 +99,10 @@ impl Network {
         }
     }
 }
+
+// CIだとrootでテストできないから[ignore]に設定
+// ローカルでテストするなら
+// $ sudo cargo test -- --ignored
 
 #[test]
 #[ignore]

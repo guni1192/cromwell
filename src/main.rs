@@ -2,6 +2,7 @@ use std::env::args;
 use std::process::exit;
 
 mod bootstrap;
+mod commands;
 mod container;
 mod help;
 mod mount;
