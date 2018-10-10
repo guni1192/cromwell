@@ -1,26 +1,47 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::IpAddr;
 use std::process::{Child, Command};
 
-struct Network {
+// NOW: デーモン: コンテナ = 1:1
+// TODO:
+// Network { Bridge }
+// Container.Network = { Network, VethPeer }
+
+struct Bridge {
+    name: String,
+    ip: IpAddr,
+}
+
+pub struct Network {
     veth_guest: String,
     veth_host: String,
-    bridge_name: String,
-    bridge_ip: IpAddr,
     namespace: String,
+    bridge: Bridge,
+}
+
+impl Bridge {
+    pub fn new() -> Bridge {
+        Bridge {
+            name: "ace0".to_string(),
+            ip: "172.0.0.1".parse().unwrap(),
+        }
+    }
+    pub fn add_bridge_ace0(&self) -> std::io::Result<Child> {
+        Command::new("ip")
+            .args(&["link", "add", "name", self.name.as_str(), "type", "bridge"])
+            .spawn()
+    }
+    pub fn del_bridge_ace0(&self) -> std::io::Result<Child> {
+        Command::new("ip")
+            .args(&["link", "del", "name", self.name.as_str()])
+            .spawn()
+    }
 }
 
 impl Network {
-    pub fn new(
-        namespace: String,
-        bridge_name: String,
-        bridge_ip: IpAddr,
-        veth_host: String,
-        veth_guest: String,
-    ) -> Network {
+    pub fn new(namespace: String, veth_host: String, veth_guest: String) -> Network {
         Network {
             namespace: namespace,
-            bridge_name: bridge_name,
-            bridge_ip: bridge_ip,
+            bridge: Bridge::new(),
             veth_host: veth_host,
             veth_guest: veth_guest,
         }
@@ -82,26 +103,11 @@ impl Network {
     }
 }
 
-pub fn make_bridge_ace0() -> std::io::Result<Child> {
-    // TODO: IPコマンドを使わない
-    Command::new("ip")
-        .args(&["link", "add", "name", "ace0", "type", "bridge"])
-        .spawn()
-}
-pub fn delete_bridge_ace0() -> std::io::Result<Child> {
-    // TODO: IPコマンドを使わない
-    Command::new("ip")
-        .args(&["link", "del", "name", "ace0"])
-        .spawn()
-}
-
 #[test]
 #[ignore]
 fn test_veth_new() {
     let network = Network::new(
         "test-ns".to_string(),
-        "ace0".to_string(),
-        "192.168.0.110".parse().unwrap(),
         "test_veth_host".to_string(),
         "test_veth_guest".to_string(),
     );
@@ -111,4 +117,22 @@ fn test_veth_new() {
 
     assert!(network.add_veth().is_ok());
     assert!(network.del_veth().is_ok());
+}
+
+#[test]
+#[ignore]
+fn test_add_bridge() {
+    let network = Network::new(
+        "test-ns".to_string(),
+        "test_veth_host".to_string(),
+        "test_veth_guest".to_string(),
+    );
+
+    let bridge_ip: IpAddr = "172.0.0.1".parse().unwrap();
+
+    assert_eq!(network.bridge.name, "ace0".to_string());
+    assert_eq!(network.bridge.ip, bridge_ip);
+
+    assert!(network.bridge.add_bridge_ace0().is_ok());
+    assert!(network.bridge.del_bridge_ace0().is_ok());
 }

@@ -47,16 +47,6 @@ fn main() {
         exit(0);
     }
 
-    if matches.opt_present("create-bridge") {
-        network::make_bridge_ace0().expect("Could not create bridge ace0");
-        exit(0);
-    }
-
-    if matches.opt_present("delete-bridge") {
-        network::delete_bridge_ace0().expect("Could not delete bridge ace0");
-        exit(0);
-    }
-
     let command = match matches.opt_str("exec") {
         Some(c) => c,
         None => "/bin/bash".to_string(),
