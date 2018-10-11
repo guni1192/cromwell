@@ -3,16 +3,16 @@ use std::process::{Child, Command};
 
 use super::commands;
 
-struct Bridge {
+pub struct Bridge {
     name: String,
     ip: IpAddr,
 }
 
 pub struct Network {
-    veth_guest: String,
-    veth_host: String,
     namespace: String,
     bridge: Bridge,
+    veth_guest: String,
+    veth_host: String,
 }
 
 impl Bridge {
@@ -35,10 +35,10 @@ impl Bridge {
 }
 
 impl Network {
-    pub fn new(namespace: String, veth_host: String, veth_guest: String) -> Network {
+    pub fn new(namespace: String, bridge: Bridge, veth_host: String, veth_guest: String) -> Network {
         Network {
             namespace: namespace,
-            bridge: Bridge::new(),
+            bridge: bridge,
             veth_host: veth_host,
             veth_guest: veth_guest,
         }
@@ -109,6 +109,7 @@ impl Network {
 fn test_veth_new() {
     let network = Network::new(
         "test-ns".to_string(),
+        Bridge::new(),
         "test_veth_host".to_string(),
         "test_veth_guest".to_string(),
     );
@@ -125,6 +126,7 @@ fn test_veth_new() {
 fn test_add_bridge() {
     let network = Network::new(
         "test-ns".to_string(),
+        Bridge::new(),
         "test_veth_host".to_string(),
         "test_veth_guest".to_string(),
     );
