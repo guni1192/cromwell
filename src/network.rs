@@ -35,7 +35,12 @@ impl Bridge {
 }
 
 impl Network {
-    pub fn new(namespace: String, bridge: Bridge, veth_host: String, veth_guest: String) -> Network {
+    pub fn new(
+        namespace: String,
+        bridge: Bridge,
+        veth_host: String,
+        veth_guest: String,
+    ) -> Network {
         Network {
             namespace: namespace,
             bridge: bridge,
