@@ -3,6 +3,7 @@ use std::process::exit;
 
 mod bootstrap;
 mod cli;
+mod commands;
 mod container;
 mod help;
 mod mount;

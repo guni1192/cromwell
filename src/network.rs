@@ -1,6 +1,8 @@
 use std::net::IpAddr;
 use std::process::{Child, Command};
 
+use super::commands;
+
 pub struct Bridge {
     name: String,
     ip: IpAddr,
@@ -12,6 +14,8 @@ pub struct Network {
     veth_guest: String,
     veth_host: String,
 }
+
+// TODO: no use ip command
 
 impl Bridge {
     pub fn new() -> Bridge {
@@ -70,24 +74,21 @@ impl Network {
         }
     }
 
-    pub fn add_veth(&self) -> Result<String, String> {
-        let status = Command::new("ip")
-            .args(&[
-                "link",
-                "add",
-                self.veth_host.as_str(),
-                "type",
-                "veth",
-                "peer",
-                "name",
-                self.veth_guest.as_str(),
-            ])
-            .status()
-            .expect("");
-        if status.success() {
-            Ok("".to_string())
-        } else {
-            Err("".to_string())
+    pub fn add_veth(&self) -> Result<(), ()> {
+        let veth_host = self.veth_host.as_str();
+        let veth_guest = self.veth_guest.as_str();
+        let command = [
+            format!(
+                "ip link add {} type veth peer name {}",
+                veth_host, veth_guest
+            ),
+            format!("ip link set {} up", veth_host),
+            format!("ip link set dev {} master {}", veth_host, self.bridge.name),
+        ];
+
+        match commands::exec_each(&command) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
         }
     }
     pub fn del_veth(&self) -> Result<String, String> {
@@ -117,11 +118,21 @@ fn test_veth_new() {
         "test_veth_guest".to_string(),
     );
 
+    network
+        .bridge
+        .add_bridge_ace0()
+        .expect("faild create bridge ace0");
+
     assert!(network.add_network_namespace().is_ok());
     assert!(network.del_network_namespace().is_ok());
 
     assert!(network.add_veth().is_ok());
     assert!(network.del_veth().is_ok());
+
+    network
+        .bridge
+        .del_bridge_ace0()
+        .expect("faild create bridge ace0");
 }
 
 #[test]
