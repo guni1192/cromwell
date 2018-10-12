@@ -15,10 +15,6 @@ pub fn exec_each(commands: &[String]) -> Result<&str, &str> {
     Ok("all commands successfull.")
 }
 
-fn parse_command(command: &str) -> Vec<&str> {
-    command.split(' ').collect()
-}
-
 #[test]
 fn test_exec_each() {
     let commands = ["ls".to_string(), "ip a".to_string()];

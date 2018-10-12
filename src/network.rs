@@ -24,10 +24,25 @@ impl Bridge {
             ip: "172.0.0.1".parse().unwrap(),
         }
     }
-    pub fn add_bridge_ace0(&self) -> std::io::Result<Child> {
-        Command::new("ip")
-            .args(&["link", "add", "name", self.name.as_str(), "type", "bridge"])
-            .spawn()
+    pub fn add_bridge_ace0(&self) -> Result<(), ()> {
+        let commands = [
+            format!("ip link add name {} type bridge", self.name.as_str()),
+            format!(
+                "ip addr add {}/24 dev {}",
+                self.ip.to_string(),
+                self.name.as_str()
+            ),
+            format!("ip link set dev {} up", self.name.as_str()),
+        ];
+
+        match commands::exec_each(&commands) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
+        }
+
+        // Command::new("ip")
+        //     .args(&["link", "add", "name", self.name.as_str(), "type", "bridge"])
+        //     .spawn()
     }
     pub fn del_bridge_ace0(&self) -> std::io::Result<Child> {
         Command::new("ip")
