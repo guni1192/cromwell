@@ -18,8 +18,8 @@ pub fn get_runner_options(args: Vec<String>) -> Result<Matches, Fail> {
 pub fn get_network_options(args: Vec<String>) -> Result<Matches, Fail> {
     let mut opts = Options::new();
 
-    opts.optflag("", "create-brige", "create ace0 bridge");
-    opts.optflag("", "delete-brige", "delete ace0 bridge");
+    opts.optflag("", "create-bridge", "create ace0 bridge");
+    opts.optflag("", "delete-bridge", "delete ace0 bridge");
 
     opts.parse(&args[1..])
 }

@@ -2,7 +2,7 @@ use std::env::args;
 use std::process::exit;
 
 mod bootstrap;
-mod commands;
+mod cli;
 mod container;
 mod help;
 mod mount;
@@ -19,7 +19,8 @@ fn main() {
     }
 
     match &args[1][..] {
-        "run" => container::run(&args[1..]),
+        "run" => cli::run(&args[1..]),
+        "network" => cli::network(&args[1..]),
         "help" => {
             print_help();
             exit(0);

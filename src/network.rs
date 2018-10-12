@@ -1,8 +1,6 @@
 use std::net::IpAddr;
 use std::process::{Child, Command};
 
-use super::commands;
-
 pub struct Bridge {
     name: String,
     ip: IpAddr,
@@ -10,7 +8,7 @@ pub struct Bridge {
 
 pub struct Network {
     namespace: String,
-    bridge: Bridge,
+    pub bridge: Bridge,
     veth_guest: String,
     veth_host: String,
 }
