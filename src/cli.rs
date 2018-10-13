@@ -137,6 +137,7 @@ pub fn network(args: &[String]) {
         Bridge::new(),
         "test_veth_host".to_string(),
         "test_veth_guest".to_string(),
+        "172.0.0.2".parse().unwrap(),
     );
 
     if matches.opt_present("create-bridge") {

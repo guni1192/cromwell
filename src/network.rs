@@ -13,6 +13,7 @@ pub struct Network {
     pub bridge: Bridge,
     veth_guest: String,
     veth_host: String,
+    container_ip: IpAddr,
 }
 
 // TODO: no use ip command
@@ -39,10 +40,6 @@ impl Bridge {
             Ok(_) => Ok(()),
             Err(_) => Err(()),
         }
-
-        // Command::new("ip")
-        //     .args(&["link", "add", "name", self.name.as_str(), "type", "bridge"])
-        //     .spawn()
     }
     pub fn del_bridge_ace0(&self) -> std::io::Result<Child> {
         Command::new("ip")
@@ -57,12 +54,14 @@ impl Network {
         bridge: Bridge,
         veth_host: String,
         veth_guest: String,
+        container_ip: IpAddr,
     ) -> Network {
         Network {
             namespace: namespace,
             bridge: bridge,
             veth_host: veth_host,
             veth_guest: veth_guest,
+            container_ip: container_ip,
         }
     }
 
@@ -77,6 +76,7 @@ impl Network {
             Err("".to_string())
         }
     }
+
     pub fn del_network_namespace(&self) -> Result<String, String> {
         let status = Command::new("ip")
             .args(&["netns", "del", self.namespace.as_str()])
@@ -92,7 +92,7 @@ impl Network {
     pub fn add_veth(&self) -> Result<(), ()> {
         let veth_host = self.veth_host.as_str();
         let veth_guest = self.veth_guest.as_str();
-        let command = [
+        let commands = [
             format!(
                 "ip link add {} type veth peer name {}",
                 veth_host, veth_guest
@@ -101,11 +101,12 @@ impl Network {
             format!("ip link set dev {} master {}", veth_host, self.bridge.name),
         ];
 
-        match commands::exec_each(&command) {
+        match commands::exec_each(&commands) {
             Ok(_) => Ok(()),
             Err(_) => Err(()),
         }
     }
+
     pub fn del_veth(&self) -> Result<String, String> {
         let status = Command::new("ip")
             .args(&["link", "del", self.veth_host.as_str()])
@@ -115,6 +116,41 @@ impl Network {
             Ok("".to_string())
         } else {
             Err("".to_string())
+        }
+    }
+
+    pub fn add_container_network(&self) -> Result<(), ()> {
+        let ns = &self.namespace;
+        let guest = &self.veth_guest;
+        let commands = [
+            format!("ip link set {} netns {} up", guest, ns),
+            format!(
+                "ip netns exec {} ip addr add {}/24 dev {}",
+                ns,
+                self.container_ip.to_string(),
+                guest
+            ),
+            format!("ip netns exec {} ip link set lo up", ns),
+            format!(
+                "ip netns exec {} ip route add default via {}",
+                ns,
+                self.bridge.ip.to_string()
+            ),
+        ];
+
+        match commands::exec_each(&commands) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
+        }
+    }
+
+    pub fn del_container_network(&self) -> Result<(), ()> {
+        let ns = &self.namespace;
+        let commands = [format!("ip netns exec {} ip route del default", ns)];
+
+        match commands::exec_each(&commands) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
         }
     }
 }
@@ -131,6 +167,7 @@ fn test_veth_new() {
         Bridge::new(),
         "test_veth_host".to_string(),
         "test_veth_guest".to_string(),
+        "172.0.0.2".parse().unwrap(),
     );
 
     network
@@ -158,6 +195,7 @@ fn test_add_bridge() {
         Bridge::new(),
         "test_veth_host".to_string(),
         "test_veth_guest".to_string(),
+        "172.0.0.2".parse().unwrap(),
     );
 
     let bridge_ip: IpAddr = "172.0.0.1".parse().unwrap();
@@ -167,4 +205,39 @@ fn test_add_bridge() {
 
     assert!(network.bridge.add_bridge_ace0().is_ok());
     assert!(network.bridge.del_bridge_ace0().is_ok());
+}
+
+#[test]
+#[ignore]
+fn test_add_container_network() {
+    let network = Network::new(
+        "test-ns".to_string(),
+        Bridge::new(),
+        "test_veth_host".to_string(),
+        "test_veth_guest".to_string(),
+        "172.0.0.2".parse().unwrap(),
+    );
+
+    network
+        .bridge
+        .add_bridge_ace0()
+        .expect("failed create bridge ace0");
+
+    network
+        .add_network_namespace()
+        .expect("failed adding network namespace");
+    network.add_veth().expect("failed adding veth peer");
+
+    assert!(network.add_container_network().is_ok());
+    assert!(network.del_container_network().is_ok());
+
+    network.del_veth().expect("failed to delete veth peer");
+    network
+        .del_network_namespace()
+        .expect("failed to delete network namespace");
+
+    network
+        .bridge
+        .del_bridge_ace0()
+        .expect("faild create bridge ace0");
 }
