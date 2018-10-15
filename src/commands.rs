@@ -6,6 +6,7 @@ pub fn exec_each(commands: &[String]) -> Result<&str, &str> {
             .arg("-c")
             .arg(command)
             .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .spawn()
         {
             Ok(mut child) => child.wait().expect("Could not to wait Command"),

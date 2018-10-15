@@ -46,6 +46,15 @@ impl Bridge {
             .args(&["link", "del", "name", self.name.as_str()])
             .spawn()
     }
+
+    pub fn existed(&self) -> bool {
+        let commands = [format!("ip link show {}", self.name.as_str())];
+
+        match commands::exec_each(&commands) {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
 }
 
 impl Network {
@@ -153,6 +162,18 @@ impl Network {
             Err(_) => Err(()),
         }
     }
+
+    pub fn clean(&self) -> Result<(), ()> {
+        self.del_container_network()
+            .expect("Could not delete container network");
+        self.del_veth().expect("Could not delete veth peer");
+        self.del_network_namespace()
+            .expect("Could not delete network namespace");
+        self.bridge
+            .del_bridge_ace0()
+            .expect("Could not delete bridge");
+        Ok(())
+    }
 }
 
 // CIだとrootでテストできないから[ignore]に設定
@@ -190,33 +211,22 @@ fn test_veth_new() {
 #[test]
 #[ignore]
 fn test_add_bridge() {
-    let network = Network::new(
-        "test-ns".to_string(),
-        Bridge::new(),
-        "test_veth_host".to_string(),
-        "test_veth_guest".to_string(),
-        "172.0.0.2".parse().unwrap(),
-    );
-
+    let network = generate_test_network();
     let bridge_ip: IpAddr = "172.0.0.1".parse().unwrap();
 
     assert_eq!(network.bridge.name, "ace0".to_string());
     assert_eq!(network.bridge.ip, bridge_ip);
 
+    assert!(network.bridge.existed());
     assert!(network.bridge.add_bridge_ace0().is_ok());
+    assert!(network.bridge.existed());
     assert!(network.bridge.del_bridge_ace0().is_ok());
 }
 
 #[test]
 #[ignore]
 fn test_add_container_network() {
-    let network = Network::new(
-        "test-ns".to_string(),
-        Bridge::new(),
-        "test_veth_host".to_string(),
-        "test_veth_guest".to_string(),
-        "172.0.0.2".parse().unwrap(),
-    );
+    let network = generate_test_network();
 
     network
         .bridge
@@ -229,15 +239,15 @@ fn test_add_container_network() {
     network.add_veth().expect("failed adding veth peer");
 
     assert!(network.add_container_network().is_ok());
-    assert!(network.del_container_network().is_ok());
+    assert!(network.clean().is_ok())
+}
 
-    network.del_veth().expect("failed to delete veth peer");
-    network
-        .del_network_namespace()
-        .expect("failed to delete network namespace");
-
-    network
-        .bridge
-        .del_bridge_ace0()
-        .expect("faild create bridge ace0");
+fn generate_test_network() -> Network {
+    Network::new(
+        "test-ns".to_string(),
+        Bridge::new(),
+        "test_veth_host".to_string(),
+        "test_veth_guest".to_string(),
+        "172.0.0.2".parse().unwrap(),
+    )
 }
