@@ -27,9 +27,9 @@ $ cargo test
 ```
 
 
-Testing about network module needs root.  
-Their unit test is determined ignore elements because travis can not use cargo test in root.
-If you want to test them in local environment, use below command
+Testing about network module is needed root.  
+Their unit test is determined ignore elements because travis ci can not use cargo test in root.  
+If you want to test them in local environment, use below command.  
 
 ```bash
 $ sudo cargo test -- --ignored
