@@ -62,11 +62,44 @@ pub fn run(args: &[String]) {
         };
     }
 
+    let network = Network::new(
+        format!("{}-ns", &container_name),
+        Bridge::new(),
+        format!("{}_host", &container_name),
+        format!("{}_guest", &container_name),
+        "172.0.0.2".parse().unwrap(),
+    );
+
+    network
+        .bridge
+        .add_bridge_ace0()
+        .expect("Could not create bridge");
+
     fs::create_dir_all(container_path).expect("Could not create directory to your path");
 
     if !Path::new(&format!("{}/etc", container_path)).exists() {
         pacstrap(container_path);
     }
+
+    let network = Network::new(
+        format!("{}-ns", &container_name),
+        Bridge::new(),
+        format!("{}_host", &container_name),
+        format!("{}_guest", &container_name),
+        "172.0.0.2".parse().unwrap(),
+    );
+
+    if network.bridge.existed() {
+        network
+            .bridge
+            .add_bridge_ace0()
+            .expect("Could not create bridge")
+    }
+
+    network
+        .add_network_namespace()
+        .expect("failed adding network namespace");
+    network.add_veth().expect("failed adding veth peer");
 
     unshare(
         CloneFlags::CLONE_NEWPID
@@ -103,13 +136,17 @@ pub fn run(args: &[String]) {
     match fork() {
         Ok(ForkResult::Parent { child, .. }) => {
             match waitpid(child, None).expect("waitpid faild") {
-                WaitStatus::Exited(_, _) => {}
+                WaitStatus::Exited(_, _) => network.clean().expect("Coult not delete network"),
                 WaitStatus::Signaled(_, _, _) => {}
                 _ => eprintln!("Unexpected exit."),
             }
         }
         Ok(ForkResult::Child) => {
-            sethostname(container_name).expect("Could not set hostname");
+            sethostname(&container_name).expect("Could not set hostname");
+
+            network
+                .add_container_network()
+                .expect("Could not add container network");
 
             fs::create_dir_all("proc").unwrap_or_else(|why| {
                 eprintln!("{:?}", why.kind());
@@ -132,11 +169,15 @@ pub fn network(args: &[String]) {
     let args = args.to_vec();
     let matches = options::get_network_options(args).expect("Invalid arguments");
 
+    let container_name = matches
+        .opt_str("name")
+        .expect("invalied arguments about container name");
+
     let network = Network::new(
-        "test-ns".to_string(),
+        format!("{}-ns", &container_name),
         Bridge::new(),
-        "test_veth_host".to_string(),
-        "test_veth_guest".to_string(),
+        format!("{}_host", &container_name),
+        format!("{}_guest", &container_name),
         "172.0.0.2".parse().unwrap(),
     );
 
