@@ -96,18 +96,23 @@ pub fn run(args: &[String]) {
             .expect("Could not create bridge")
     }
 
-    network
-        .add_network_namespace()
-        .expect("failed adding network namespace");
+    if !network.existed_namespace() {
+        network
+            .add_network_namespace()
+            .expect("failed adding network namespace");
+    }
     network.add_veth().expect("failed adding veth peer");
+
+    network
+        .add_container_network()
+        .expect("Could not add container network");
 
     unshare(
         CloneFlags::CLONE_NEWPID
             | CloneFlags::CLONE_NEWIPC
             | CloneFlags::CLONE_NEWUTS
             | CloneFlags::CLONE_NEWNS
-            | CloneFlags::CLONE_NEWNET
-            | CloneFlags::CLONE_FS,
+            | CloneFlags::CLONE_NEWNET,
     )
     .expect("Can not unshare(2).");
 
@@ -136,17 +141,13 @@ pub fn run(args: &[String]) {
     match fork() {
         Ok(ForkResult::Parent { child, .. }) => {
             match waitpid(child, None).expect("waitpid faild") {
-                WaitStatus::Exited(_, _) => network.clean().expect("Coult not delete network"),
+                WaitStatus::Exited(_, _) => {}
                 WaitStatus::Signaled(_, _, _) => {}
                 _ => eprintln!("Unexpected exit."),
             }
         }
         Ok(ForkResult::Child) => {
             sethostname(&container_name).expect("Could not set hostname");
-
-            network
-                .add_container_network()
-                .expect("Could not add container network");
 
             fs::create_dir_all("proc").unwrap_or_else(|why| {
                 eprintln!("{:?}", why.kind());
@@ -157,6 +158,20 @@ pub fn run(args: &[String]) {
             let cmd = CString::new(command.clone()).unwrap();
             let default_shell = CString::new("/bin/bash").unwrap();
             let shell_opt = CString::new("-c").unwrap();
+
+            // let ip_cmd = format!("ip netns exec {} /bin/bash", network.namespace);
+
+            // execv(
+            //     &default_shell,
+            //     // &CString::new("ip").unwrap(),
+            //     &[
+            //         default_shell.clone(),
+            //         shell_opt,
+            //         // cmd,
+            //         CString::new(ip_cmd).unwrap(),
+            //     ],
+            // )
+            // .expect("execution faild.");
 
             execv(&default_shell, &[default_shell.clone(), shell_opt, cmd])
                 .expect("execution faild.");

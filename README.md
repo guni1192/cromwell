@@ -26,7 +26,6 @@ bin  boot  dev  etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  srv  sys
 $ cargo test
 ```
 
-
 Testing about network module is needed root.  
 Their unit test is determined ignore elements because travis ci can not use cargo test in root.  
 If you want to test them in local environment, use below command.  
@@ -34,5 +33,3 @@ If you want to test them in local environment, use below command.
 ```bash
 $ sudo cargo test -- --ignored
 ```
-
-

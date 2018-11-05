@@ -10,7 +10,7 @@ pub struct Bridge {
 }
 
 pub struct Network {
-    namespace: String,
+    pub namespace: String,
     pub bridge: Bridge,
     veth_guest: String,
     veth_host: String,
