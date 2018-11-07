@@ -4,7 +4,6 @@ use std::fs;
 use std::path::Path;
 use std::process::exit;
 
-use nix::mount::{mount, MsFlags};
 use nix::sched::*;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
@@ -12,7 +11,7 @@ use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
 use super::bootstrap::pacstrap;
 use super::container;
 use super::help::print_help;
-use super::mount;
+use super::mounts;
 use super::network::{Bridge, Network};
 use super::options;
 
@@ -116,23 +115,8 @@ pub fn run(args: &[String]) {
     )
     .expect("Can not unshare(2).");
 
-    mount(
-        None::<&str>,
-        "/",
-        None::<&str>,
-        MsFlags::MS_PRIVATE,
-        None::<&str>,
-    )
-    .expect("Can not mount root dir.");
-
-    mount(
-        Some(container_path),
-        container_path,
-        None::<&str>,
-        MsFlags::MS_BIND | MsFlags::MS_REC,
-        None::<&str>,
-    )
-    .expect("Can not mount specify dir.");
+    mounts::mount_rootfs().expect("Can not mount root dir.");
+    mounts::mount_container_path(container_path).expect("Can not mount specify dir.");
 
     chroot(container_path).expect("chroot failed.");
 
@@ -153,7 +137,7 @@ pub fn run(args: &[String]) {
                 eprintln!("{:?}", why.kind());
             });
 
-            mount::mount_proc().expect("mount procfs faild.");
+            mounts::mount_proc().expect("mount procfs faild.");
 
             let cmd = CString::new(command.clone()).unwrap();
             let default_shell = CString::new("/bin/bash").unwrap();

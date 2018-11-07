@@ -6,7 +6,7 @@ mod cli;
 mod commands;
 mod container;
 mod help;
-mod mount;
+mod mounts;
 mod network;
 mod options;
 
