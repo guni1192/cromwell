@@ -141,6 +141,18 @@ impl Network {
         }
     }
 
+    pub fn exists_veth(&self) -> bool {
+        let addrs = nix::ifaddrs::getifaddrs().unwrap();
+        let ifname = addrs
+            .into_iter()
+            .filter(|ifaddr| ifaddr.interface_name == self.veth_host)
+            .next();
+        match ifname {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
     pub fn add_container_network(&self) -> Result<(), ()> {
         let ns = &self.namespace;
         let guest = &self.veth_guest;
@@ -180,7 +192,10 @@ impl Network {
         self.del_container_network()
             .expect("Could not delete container network");
 
-        self.del_veth().expect("Could not delete veth peer");
+        if self.exists_veth() {
+            self.del_veth().expect("Could not delete veth peer");
+        }
+
         if self.existed_namespace() {
             self.del_network_namespace()
                 .expect("Could not delete network namespace");

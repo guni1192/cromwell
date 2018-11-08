@@ -195,4 +195,9 @@ pub fn network(args: &[String]) {
             .expect("Could not delete bridge");
         exit(0);
     }
+
+    if matches.opt_present("clean") {
+        network.clean().expect("Failed clean up network");
+        exit(0);
+    }
 }
