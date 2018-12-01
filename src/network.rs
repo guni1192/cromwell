@@ -1,20 +1,22 @@
 use std::net::IpAddr;
 use std::path::Path;
+use std::process;
 use std::process::{Child, Command, Stdio};
 
 use super::commands;
 
 pub struct Bridge {
-    name: String,
+    pub name: String,
     ip: IpAddr,
 }
 
 pub struct Network {
     pub namespace: String,
     pub bridge: Bridge,
-    veth_guest: String,
-    veth_host: String,
+    pub veth_guest: String,
+    pub veth_host: String,
     container_ip: IpAddr,
+    pid: u32,
 }
 
 // TODO: no use ip command
@@ -29,7 +31,7 @@ impl Bridge {
     pub fn add_bridge_ace0(&self) -> Result<(), ()> {
         let commands = [
             format!("ip link add name {} type bridge", self.name),
-            format!("ip addr add {}/24 dev {}", self.ip.to_string(), self.name),
+            format!("ip addr add {}/16 dev {}", self.ip.to_string(), self.name),
             format!("ip link set dev {} up", self.name),
         ];
 
@@ -45,8 +47,6 @@ impl Bridge {
     }
 
     pub fn existed(&self) -> bool {
-        // let commands = [format!("ip link show {}", self.name)];
-
         match Command::new("ip")
             .args(&["link", "show", self.name.as_str()])
             .stdout(Stdio::null())
@@ -76,6 +76,7 @@ impl Network {
             veth_host: veth_host,
             veth_guest: veth_guest,
             container_ip: container_ip,
+            pid: process::id(),
         }
     }
 
@@ -157,14 +158,18 @@ impl Network {
         let ns = &self.namespace;
         let guest = &self.veth_guest;
         let commands = [
+            format!(
+                "ip netns exec {} ip link set {} netns {}",
+                ns, guest, &self.pid
+            ),
+            format!("ip netns exec {} ip link set lo up", ns),
             format!("ip link set {} netns {} up", guest, ns),
             format!(
-                "ip netns exec {} ip addr add {}/24 dev {}",
+                "ip netns exec {} ip addr add {}/16 dev {}",
                 ns,
                 self.container_ip.to_string(),
                 guest
             ),
-            format!("ip netns exec {} ip link set lo up", ns),
             format!(
                 "ip netns exec {} ip route add default via {}",
                 ns,
@@ -203,10 +208,6 @@ impl Network {
         Ok(())
     }
 }
-
-// CIだとrootでテストできないから[ignore]に設定
-// ローカルでテストするなら
-// $ sudo cargo test -- --ignored
 
 #[test]
 #[ignore]
