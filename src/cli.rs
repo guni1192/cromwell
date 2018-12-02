@@ -94,7 +94,7 @@ pub fn run(args: &[String]) {
         println!("Created namespace {}", network.bridge.name);
     }
 
-    if network.existed_veth() {
+    if !network.existed_veth() {
         network.add_veth().expect("failed adding veth peer");
         println!("Created veth_host: {}", network.veth_host);
         println!("Created veth_guest: {}", network.veth_guest);
