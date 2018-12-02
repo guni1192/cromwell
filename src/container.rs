@@ -111,8 +111,8 @@ pub fn get_containers_path() -> Result<String, env::VarError> {
 #[test]
 fn test_get_container_path() {
     let ace_container_env = "ACE_CONTAINER_PATH";
-    let ace_container_path = "/var/tmp/ace-containers";
+    let ace_container_path = "/var/lib/ace-containers";
     env::set_var(ace_container_env, ace_container_path);
 
-    assert_eq!(ace_container_path, get_container_path().unwrap())
+    assert_eq!(ace_container_path, get_containers_path().unwrap())
 }
