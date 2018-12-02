@@ -1,13 +1,11 @@
 use std::env;
-use std::ffi::CString;
 use std::fs;
 use std::path::Path;
 use std::process;
 use std::process::exit;
 
 use nix::sched::*;
-use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
+use nix::unistd::{chdir, chroot};
 
 use super::bootstrap::pacstrap;
 use super::container;
@@ -39,71 +37,34 @@ pub fn run(args: &[String]) {
     let container_name = matches
         .opt_str("name")
         .expect("invalied arguments about container name");
-    // let container_path = format!("{}/{}", default_container_path, container_name);
-    // let container_path = container_path.as_str();
 
-    let container = container::Container::new(container_name.clone());
+    let container = container::Container::new(container_name.clone(), command);
 
     if matches.opt_present("del") {
-        match container::delete(container.name.as_str()) {
-            Ok(_) => {
-                println!("delete container succeed.");
-                exit(0);
-            }
-            Err(e) => {
-                eprintln!("{}", e);
-                exit(1);
-            }
-        };
+        container.delete().expect("Faild to remove container: ");
     }
 
-    if !Path::new(&format!("{}", container.path)).exists() {
-        println!("Creating container bootstrap to {} ...", container.path);
-        fs::create_dir_all(container.path.clone())
-            .expect("Could not create directory to your path");
-        pacstrap(container.path.as_str());
+    // bootstraping
+    if !Path::new(&container.path).exists() {
+        println!(
+            "Creating container bootstrap to {} ...",
+            container.path_str()
+        );
+        fs::create_dir_all(container.path_str()).expect("Could not create directory to your path");
+        pacstrap(container.path_str());
     }
 
     let pid = process::id();
     println!("pid: {}", pid);
 
     println!("Creating network...");
-    let network = Network::new(
-        format!("{}-ns", &container.name),
-        Bridge::new(),
-        format!("{}_host", &container.name),
-        format!("{}_guest", &container.name),
-        "172.0.0.2".parse().unwrap(),
-    );
-
-    if !network.bridge.existed() {
-        println!("Creating {} ...", network.bridge.name);
-        network
-            .bridge
-            .add_bridge_ace0()
-            .expect("Could not create bridge");
-    }
-    if !network.existed_namespace() {
-        network
-            .add_network_namespace()
-            .expect("failed adding network namespace");
-        println!("Created namespace {}", network.bridge.name);
-    }
-
-    if !network.existed_veth() {
-        network.add_veth().expect("failed adding veth peer");
-        println!("Created veth_host: {}", network.veth_host);
-        println!("Created veth_guest: {}", network.veth_guest);
-    }
-    network
-        .add_container_network()
-        .expect("Could not add container network");
+    container.struct_network();
 
     // mounts
     println!("Mount rootfs ... ");
     mounts::mount_rootfs().expect("Can not mount root dir.");
     println!("Mount container path ... ");
-    mounts::mount_container_path(container.path.as_str()).expect("Can not mount specify dir.");
+    mounts::mount_container_path(container.path_str()).expect("Can not mount specify dir.");
 
     unshare(
         CloneFlags::CLONE_NEWPID
@@ -114,39 +75,11 @@ pub fn run(args: &[String]) {
     )
     .expect("Can not unshare(2).");
 
-    chroot(container.path.as_str()).expect("chroot failed.");
+    chroot(container.path_str()).expect("chroot failed.");
 
     chdir("/").expect("cd / failed.");
 
-    println!("fork(2) start!");
-    match fork() {
-        Ok(ForkResult::Parent { child, .. }) => {
-            println!("container pid: {}", child);
-            match waitpid(child, None).expect("waitpid faild") {
-                WaitStatus::Exited(_, _) => {}
-                WaitStatus::Signaled(_, _, _) => {}
-                _ => eprintln!("Unexpected exit."),
-            }
-        }
-        Ok(ForkResult::Child) => {
-            sethostname(&container.name).expect("Could not set hostname");
-
-            fs::create_dir_all("proc").unwrap_or_else(|why| {
-                eprintln!("{:?}", why.kind());
-            });
-
-            println!("Mount procfs ... ");
-            mounts::mount_proc().expect("mount procfs faild.");
-
-            let cmd = CString::new(command.clone()).unwrap();
-            let default_shell = CString::new("/bin/bash").unwrap();
-            let shell_opt = CString::new("-c").unwrap();
-
-            execv(&default_shell, &[default_shell.clone(), shell_opt, cmd])
-                .expect("execution faild.");
-        }
-        Err(_) => eprintln!("Fork failed"),
-    }
+    container.run();
 }
 
 pub fn network(args: &[String]) {
