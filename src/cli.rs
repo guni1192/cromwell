@@ -23,9 +23,6 @@ pub fn run(args: &[String]) {
     // TODO: settting.rsからの読み込みに変更
     env::set_var(ace_container_path, "/var/lib/ace-containers");
 
-    let pid = process::id();
-    println!("pid: {}", pid);
-
     let default_container_path = match env::var(ace_container_path) {
         Ok(value) => value,
         Err(e) => {
@@ -71,6 +68,9 @@ pub fn run(args: &[String]) {
         pacstrap(container_path);
     }
 
+    let pid = process::id();
+    println!("pid: {}", pid);
+
     println!("Creating network...");
     let network = Network::new(
         format!("{}-ns", &container_name),
@@ -94,10 +94,11 @@ pub fn run(args: &[String]) {
         println!("Created namespace {}", network.bridge.name);
     }
 
-    network.add_veth().expect("failed adding veth peer");
-    println!("Created veth_host: {}", network.veth_host);
-    println!("Created veth_guest: {}", network.veth_guest);
-
+    if network.existed_veth() {
+        network.add_veth().expect("failed adding veth peer");
+        println!("Created veth_host: {}", network.veth_host);
+        println!("Created veth_guest: {}", network.veth_guest);
+    }
     network
         .add_container_network()
         .expect("Could not add container network");
@@ -124,6 +125,7 @@ pub fn run(args: &[String]) {
     println!("fork(2) start!");
     match fork() {
         Ok(ForkResult::Parent { child, .. }) => {
+            println!("container pid: {}", child);
             match waitpid(child, None).expect("waitpid faild") {
                 WaitStatus::Exited(_, _) => {}
                 WaitStatus::Signaled(_, _, _) => {}

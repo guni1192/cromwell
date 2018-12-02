@@ -1,7 +1,6 @@
 use std::net::IpAddr;
 use std::path::Path;
 use std::process;
-use std::process::{Child, Command};
 
 use super::commands;
 
@@ -40,10 +39,12 @@ impl Bridge {
             Err(_) => Err(()),
         }
     }
-    pub fn del_bridge_ace0(&self) -> std::io::Result<Child> {
-        Command::new("ip")
-            .args(&["link", "del", "name", self.name.as_str()])
-            .spawn()
+    pub fn del_bridge_ace0(&self) -> Result<(), ()> {
+        let commands = [format!("ip link del name {}", self.name.as_str())];
+        match commands::exec_each(&commands) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
+        }
     }
 
     pub fn existed(&self) -> bool {
@@ -77,27 +78,19 @@ impl Network {
         }
     }
 
-    pub fn add_network_namespace(&self) -> Result<String, String> {
-        let status = Command::new("ip")
-            .args(&["netns", "add", self.namespace.as_str()])
-            .status()
-            .expect("");
-        if status.success() {
-            Ok("".to_string())
-        } else {
-            Err("".to_string())
+    pub fn add_network_namespace(&self) -> Result<(), ()> {
+        let commands = [format!("ip netns add {}", self.namespace.as_str())];
+        match commands::exec_each(&commands) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
         }
     }
 
-    pub fn del_network_namespace(&self) -> Result<String, String> {
-        let status = Command::new("ip")
-            .args(&["netns", "del", self.namespace.as_str()])
-            .status()
-            .expect("");
-        if status.success() {
-            Ok("".to_string())
-        } else {
-            Err("".to_string())
+    pub fn del_network_namespace(&self) -> Result<(), ()> {
+        let commands = [format!("ip netns del {}", self.namespace.as_str())];
+        match commands::exec_each(&commands) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
         }
     }
 
@@ -127,19 +120,15 @@ impl Network {
         }
     }
 
-    pub fn del_veth(&self) -> Result<String, String> {
-        let status = Command::new("ip")
-            .args(&["link", "del", self.veth_host.as_str()])
-            .status()
-            .unwrap();
-        if status.success() {
-            Ok("".to_string())
-        } else {
-            Err("".to_string())
+    pub fn del_veth(&self) -> Result<(), ()> {
+        let commands = [format!("ip link del {}", self.veth_host.as_str())];
+        match commands::exec_each(&commands) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
         }
     }
 
-    pub fn exists_veth(&self) -> bool {
+    pub fn existed_veth(&self) -> bool {
         let addrs = nix::ifaddrs::getifaddrs().unwrap();
         let ifname = addrs
             .into_iter()
@@ -194,7 +183,7 @@ impl Network {
         self.del_container_network()
             .expect("Could not delete container network");
 
-        if self.exists_veth() {
+        if self.existed_veth() {
             self.del_veth().expect("Could not delete veth peer");
         }
 
@@ -244,7 +233,7 @@ fn test_add_bridge() {
     assert_eq!(network.bridge.name, "ace0".to_string());
     assert_eq!(network.bridge.ip, bridge_ip);
 
-    assert!(network.bridge.existed());
+    assert!(!network.bridge.existed());
     assert!(network.bridge.add_bridge_ace0().is_ok());
     assert!(network.bridge.existed());
     assert!(network.bridge.del_bridge_ace0().is_ok());
@@ -269,6 +258,7 @@ fn test_add_container_network() {
     assert!(network.clean().is_ok())
 }
 
+#[allow(dead_code)]
 fn generate_test_network() -> Network {
     Network::new(
         "test-ns".to_string(),
