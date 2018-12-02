@@ -57,6 +57,15 @@ impl Container {
             .expect("Could not add container network");
     }
 
+    pub fn prepare(&self) {
+        println!("Started initialize Container!");
+        let c_hosts = format!("{}/etc/hosts", self.path);
+        let c_resolv = format!("{}/etc/resolv.conf", self.path);
+
+        fs::copy("/etc/hosts", c_hosts).expect("Failed copy file: ");
+        fs::copy("/etc/resolv.conf", c_resolv).expect("Failed copy file: ");
+    }
+
     pub fn run(&self) {
         println!("fork(2) start!");
         match fork() {

@@ -57,8 +57,9 @@ pub fn run(args: &[String]) {
     let pid = process::id();
     println!("pid: {}", pid);
 
-    println!("Creating network...");
-    container.struct_network();
+    container.prepare();
+    // println!("Creating network...");
+    // container.struct_network();
 
     // mounts
     println!("Mount rootfs ... ");
@@ -71,7 +72,7 @@ pub fn run(args: &[String]) {
             | CloneFlags::CLONE_NEWIPC
             | CloneFlags::CLONE_NEWUTS
             | CloneFlags::CLONE_NEWNS
-            | CloneFlags::CLONE_NEWNET,
+            // | CloneFlags::CLONE_NEWNET,
     )
     .expect("Can not unshare(2).");
 
