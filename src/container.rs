@@ -1,13 +1,30 @@
 use std::env;
 use std::fs;
+use std::path::Path;
 
-fn get_container_path() -> Result<String, env::VarError> {
+use super::network::Network;
+
+pub struct Container {
+    pub name: String,
+    pub path: String,
+}
+
+impl Container {
+    pub fn new(name: String) -> Container {
+        Container {
+            name: name.clone(),
+            path: format!("{}/{}", get_containers_path().unwrap(), name.clone()),
+        }
+    }
+}
+
+pub fn get_containers_path() -> Result<String, env::VarError> {
     let ace_container_env = "ACE_CONTAINER_PATH";
     env::var(ace_container_env)
 }
 
 pub fn delete(ctn_name: &str) -> std::io::Result<()> {
-    let ctn_path = get_container_path().expect("Could not get env ACE_CONTAINER_PATH");
+    let ctn_path = get_containers_path().expect("Could not get env ACE_CONTAINER_PATH");
     let ctn_full_path = format!("{}/{}", ctn_path, ctn_name);
     fs::remove_dir_all(ctn_full_path)
 }

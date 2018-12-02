@@ -19,17 +19,10 @@ use super::options;
 // TODO: deamonize option
 pub fn run(args: &[String]) {
     let args = args.to_vec();
+
     let ace_container_path = "ACE_CONTAINER_PATH";
     // TODO: settting.rsからの読み込みに変更
     env::set_var(ace_container_path, "/var/lib/ace-containers");
-
-    let default_container_path = match env::var(ace_container_path) {
-        Ok(value) => value,
-        Err(e) => {
-            eprintln!("Could' not get {}: {}", ace_container_path, e);
-            exit(1);
-        }
-    };
 
     let matches = options::get_runner_options(args).expect("Invalid arguments");
 
@@ -46,11 +39,13 @@ pub fn run(args: &[String]) {
     let container_name = matches
         .opt_str("name")
         .expect("invalied arguments about container name");
-    let container_path = format!("{}/{}", default_container_path, container_name);
-    let container_path = container_path.as_str();
+    // let container_path = format!("{}/{}", default_container_path, container_name);
+    // let container_path = container_path.as_str();
+
+    let container = container::Container::new(container_name.clone());
 
     if matches.opt_present("del") {
-        match container::delete(container_name.as_str()) {
+        match container::delete(container.name.as_str()) {
             Ok(_) => {
                 println!("delete container succeed.");
                 exit(0);
@@ -62,10 +57,11 @@ pub fn run(args: &[String]) {
         };
     }
 
-    if !Path::new(&format!("{}", container_path)).exists() {
-        println!("Creating container bootstrap to {} ...", container_path);
-        fs::create_dir_all(container_path).expect("Could not create directory to your path");
-        pacstrap(container_path);
+    if !Path::new(&format!("{}", container.path)).exists() {
+        println!("Creating container bootstrap to {} ...", container.path);
+        fs::create_dir_all(container.path.clone())
+            .expect("Could not create directory to your path");
+        pacstrap(container.path.as_str());
     }
 
     let pid = process::id();
@@ -73,10 +69,10 @@ pub fn run(args: &[String]) {
 
     println!("Creating network...");
     let network = Network::new(
-        format!("{}-ns", &container_name),
+        format!("{}-ns", &container.name),
         Bridge::new(),
-        format!("{}_host", &container_name),
-        format!("{}_guest", &container_name),
+        format!("{}_host", &container.name),
+        format!("{}_guest", &container.name),
         "172.0.0.2".parse().unwrap(),
     );
 
@@ -107,7 +103,7 @@ pub fn run(args: &[String]) {
     println!("Mount rootfs ... ");
     mounts::mount_rootfs().expect("Can not mount root dir.");
     println!("Mount container path ... ");
-    mounts::mount_container_path(container_path).expect("Can not mount specify dir.");
+    mounts::mount_container_path(container.path.as_str()).expect("Can not mount specify dir.");
 
     unshare(
         CloneFlags::CLONE_NEWPID
@@ -118,7 +114,7 @@ pub fn run(args: &[String]) {
     )
     .expect("Can not unshare(2).");
 
-    chroot(container_path).expect("chroot failed.");
+    chroot(container.path.as_str()).expect("chroot failed.");
 
     chdir("/").expect("cd / failed.");
 
@@ -133,7 +129,7 @@ pub fn run(args: &[String]) {
             }
         }
         Ok(ForkResult::Child) => {
-            sethostname(&container_name).expect("Could not set hostname");
+            sethostname(&container.name).expect("Could not set hostname");
 
             fs::create_dir_all("proc").unwrap_or_else(|why| {
                 eprintln!("{:?}", why.kind());
