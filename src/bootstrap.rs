@@ -8,7 +8,7 @@ pub fn pacstrap(container_path: &str) {
         .arg("net-tools")
         .arg("--noconfirm")
         .spawn()
-        .expect("Failed Bootstrap");
+        .expect("Please Install arch-install-scripts");
     pacstrap.wait().expect("Failed pacstrap waiting");
 }
 

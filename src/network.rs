@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 use std::path::Path;
 use std::process;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command};
 
 use super::commands;
 
@@ -47,17 +47,14 @@ impl Bridge {
     }
 
     pub fn existed(&self) -> bool {
-        match Command::new("ip")
-            .args(&["link", "show", self.name.as_str()])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-        {
-            Ok(mut child) => {
-                child.wait().expect("Could not wait ip link show");
-                true
-            }
-            Err(_) => false,
+        let addrs = nix::ifaddrs::getifaddrs().unwrap();
+        let ifname = addrs
+            .into_iter()
+            .filter(|ifaddr| ifaddr.interface_name == self.name)
+            .next();
+        match ifname {
+            Some(_) => true,
+            None => false,
         }
     }
 }

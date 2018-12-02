@@ -2,6 +2,7 @@ use std::process::{Command, Stdio};
 
 pub fn exec_each(commands: &[String]) -> Result<&str, &str> {
     for command in commands.iter() {
+        println!("{}", command);
         match Command::new("sh")
             .arg("-c")
             .arg(command)

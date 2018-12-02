@@ -21,7 +21,7 @@ pub fn run(args: &[String]) {
     let args = args.to_vec();
     let ace_container_path = "ACE_CONTAINER_PATH";
     // TODO: settting.rsからの読み込みに変更
-    env::set_var(ace_container_path, "/var/tmp/ace-containers");
+    env::set_var(ace_container_path, "/var/lib/ace-containers");
 
     let pid = process::id();
     println!("pid: {}", pid);
@@ -65,7 +65,11 @@ pub fn run(args: &[String]) {
         };
     }
 
-    fs::create_dir_all(container_path).expect("Could not create directory to your path");
+    if !Path::new(&format!("{}", container_path)).exists() {
+        println!("Creating container bootstrap to {} ...", container_path);
+        fs::create_dir_all(container_path).expect("Could not create directory to your path");
+        pacstrap(container_path);
+    }
 
     println!("Creating network...");
     let network = Network::new(
@@ -76,24 +80,20 @@ pub fn run(args: &[String]) {
         "172.0.0.2".parse().unwrap(),
     );
 
-    if !Path::new(&format!("{}", container_path)).exists() {
-        pacstrap(container_path);
-    }
-
-    if network.bridge.existed() {
+    if !network.bridge.existed() {
+        println!("Creating {} ...", network.bridge.name);
         network
             .bridge
             .add_bridge_ace0()
             .expect("Could not create bridge");
-        println!("Created {}", network.bridge.name);
     }
-
     if !network.existed_namespace() {
         network
             .add_network_namespace()
             .expect("failed adding network namespace");
         println!("Created namespace {}", network.bridge.name);
     }
+
     network.add_veth().expect("failed adding veth peer");
     println!("Created veth_host: {}", network.veth_host);
     println!("Created veth_guest: {}", network.veth_guest);
@@ -108,18 +108,18 @@ pub fn run(args: &[String]) {
     println!("Mount container path ... ");
     mounts::mount_container_path(container_path).expect("Can not mount specify dir.");
 
-    chroot(container_path).expect("chroot failed.");
-
-    chdir("/").expect("cd / failed.");
-
     unshare(
         CloneFlags::CLONE_NEWPID
             | CloneFlags::CLONE_NEWIPC
             | CloneFlags::CLONE_NEWUTS
+            | CloneFlags::CLONE_NEWNS
             | CloneFlags::CLONE_NEWNET,
     )
     .expect("Can not unshare(2).");
-    println!("unshare(2), pid, ipc, utc, net");
+
+    chroot(container_path).expect("chroot failed.");
+
+    chdir("/").expect("cd / failed.");
 
     println!("fork(2) start!");
     match fork() {
