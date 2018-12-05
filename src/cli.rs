@@ -1,13 +1,11 @@
 use std::env;
-use std::ffi::CString;
 use std::fs;
 use std::path::Path;
 use std::process;
 use std::process::exit;
 
 use nix::sched::*;
-use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, execv, fork, sethostname, ForkResult};
+use nix::unistd::{chdir, chroot};
 
 use super::bootstrap::pacstrap;
 use super::container;
@@ -19,17 +17,10 @@ use super::options;
 // TODO: deamonize option
 pub fn run(args: &[String]) {
     let args = args.to_vec();
+
     let ace_container_path = "ACE_CONTAINER_PATH";
     // TODO: settting.rsからの読み込みに変更
     env::set_var(ace_container_path, "/var/lib/ace-containers");
-
-    let default_container_path = match env::var(ace_container_path) {
-        Ok(value) => value,
-        Err(e) => {
-            eprintln!("Could' not get {}: {}", ace_container_path, e);
-            exit(1);
-        }
-    };
 
     let matches = options::get_runner_options(args).expect("Invalid arguments");
 
@@ -46,111 +37,50 @@ pub fn run(args: &[String]) {
     let container_name = matches
         .opt_str("name")
         .expect("invalied arguments about container name");
-    let container_path = format!("{}/{}", default_container_path, container_name);
-    let container_path = container_path.as_str();
+
+    let container = container::Container::new(container_name.clone(), command);
 
     if matches.opt_present("del") {
-        match container::delete(container_name.as_str()) {
-            Ok(_) => {
-                println!("delete container succeed.");
-                exit(0);
-            }
-            Err(e) => {
-                eprintln!("{}", e);
-                exit(1);
-            }
-        };
+        container.delete().expect("Faild to remove container: ");
     }
 
-    if !Path::new(&format!("{}", container_path)).exists() {
-        println!("Creating container bootstrap to {} ...", container_path);
-        fs::create_dir_all(container_path).expect("Could not create directory to your path");
-        pacstrap(container_path);
+    // bootstraping
+    if !Path::new(&container.path).exists() {
+        println!(
+            "Creating container bootstrap to {} ...",
+            container.path_str()
+        );
+        fs::create_dir_all(container.path_str()).expect("Could not create directory to your path");
+        pacstrap(container.path_str());
     }
 
     let pid = process::id();
     println!("pid: {}", pid);
 
-    println!("Creating network...");
-    let network = Network::new(
-        format!("{}-ns", &container_name),
-        Bridge::new(),
-        format!("{}_host", &container_name),
-        format!("{}_guest", &container_name),
-        "172.0.0.2".parse().unwrap(),
-    );
-
-    if !network.bridge.existed() {
-        println!("Creating {} ...", network.bridge.name);
-        network
-            .bridge
-            .add_bridge_ace0()
-            .expect("Could not create bridge");
-    }
-    if !network.existed_namespace() {
-        network
-            .add_network_namespace()
-            .expect("failed adding network namespace");
-        println!("Created namespace {}", network.bridge.name);
-    }
-
-    if !network.existed_veth() {
-        network.add_veth().expect("failed adding veth peer");
-        println!("Created veth_host: {}", network.veth_host);
-        println!("Created veth_guest: {}", network.veth_guest);
-    }
-    network
-        .add_container_network()
-        .expect("Could not add container network");
+    container.prepare();
+    // println!("Creating network...");
+    // container.struct_network();
 
     // mounts
     println!("Mount rootfs ... ");
     mounts::mount_rootfs().expect("Can not mount root dir.");
     println!("Mount container path ... ");
-    mounts::mount_container_path(container_path).expect("Can not mount specify dir.");
+    mounts::mount_container_path(container.path_str()).expect("Can not mount specify dir.");
 
     unshare(
         CloneFlags::CLONE_NEWPID
             | CloneFlags::CLONE_NEWIPC
             | CloneFlags::CLONE_NEWUTS
             | CloneFlags::CLONE_NEWNS
-            | CloneFlags::CLONE_NEWNET,
+            // | CloneFlags::CLONE_NEWNET,
     )
     .expect("Can not unshare(2).");
 
-    chroot(container_path).expect("chroot failed.");
+    chroot(container.path_str()).expect("chroot failed.");
 
     chdir("/").expect("cd / failed.");
 
-    println!("fork(2) start!");
-    match fork() {
-        Ok(ForkResult::Parent { child, .. }) => {
-            println!("container pid: {}", child);
-            match waitpid(child, None).expect("waitpid faild") {
-                WaitStatus::Exited(_, _) => {}
-                WaitStatus::Signaled(_, _, _) => {}
-                _ => eprintln!("Unexpected exit."),
-            }
-        }
-        Ok(ForkResult::Child) => {
-            sethostname(&container_name).expect("Could not set hostname");
-
-            fs::create_dir_all("proc").unwrap_or_else(|why| {
-                eprintln!("{:?}", why.kind());
-            });
-
-            println!("Mount procfs ... ");
-            mounts::mount_proc().expect("mount procfs faild.");
-
-            let cmd = CString::new(command.clone()).unwrap();
-            let default_shell = CString::new("/bin/bash").unwrap();
-            let shell_opt = CString::new("-c").unwrap();
-
-            execv(&default_shell, &[default_shell.clone(), shell_opt, cmd])
-                .expect("execution faild.");
-        }
-        Err(_) => eprintln!("Fork failed"),
-    }
+    container.run();
 }
 
 pub fn network(args: &[String]) {

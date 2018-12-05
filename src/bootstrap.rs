@@ -5,7 +5,8 @@ pub fn pacstrap(container_path: &str) {
         .arg("-i")
         .arg(format!("{}", container_path))
         .arg("base")
-        .arg("net-tools")
+        .arg("base-devel")
+        .arg("dnsutils")
         .arg("--noconfirm")
         .spawn()
         .expect("Please Install arch-install-scripts");
