@@ -5,9 +5,11 @@ pub fn pacstrap(container_path: &str) {
         .arg("-i")
         .arg(format!("{}", container_path))
         .arg("base")
+        .arg("base-devel")
+        .arg("dnsutils")
         .arg("--noconfirm")
         .spawn()
-        .expect("Failed Bootstrap");
+        .expect("Please Install arch-install-scripts");
     pacstrap.wait().expect("Failed pacstrap waiting");
 }
 
