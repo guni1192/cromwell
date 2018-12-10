@@ -20,7 +20,8 @@ pub fn run(args: &[String]) {
 
     let ace_container_path = "ACE_CONTAINER_PATH";
     // TODO: settting.rsからの読み込みに変更
-    env::set_var(ace_container_path, "/var/lib/ace-containers");
+    // env::set_var(ace_container_path, "/var/lib/ace-containers");
+    env::set_var(ace_container_path, "/home/vagrant/ace-containers");
 
     let matches = options::get_runner_options(args).expect("Invalid arguments");
 
@@ -62,16 +63,17 @@ pub fn run(args: &[String]) {
     // container.struct_network();
 
     // mounts
-    println!("Mount rootfs ... ");
-    mounts::mount_rootfs().expect("Can not mount root dir.");
-    println!("Mount container path ... ");
-    mounts::mount_container_path(container.path_str()).expect("Can not mount specify dir.");
+    // println!("Mount rootfs ... ");
+    // mounts::mount_rootfs().expect("Can not mount root dir.");
+    // println!("Mount container path ... ");
+    // mounts::mount_container_path(container.path_str()).expect("Can not mount specify dir.");
 
     unshare(
         CloneFlags::CLONE_NEWPID
             | CloneFlags::CLONE_NEWIPC
             | CloneFlags::CLONE_NEWUTS
             | CloneFlags::CLONE_NEWNS
+            | CloneFlags::CLONE_NEWUSER
             // | CloneFlags::CLONE_NEWNET,
     )
     .expect("Can not unshare(2).");
