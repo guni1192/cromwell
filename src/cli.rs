@@ -18,10 +18,11 @@ use super::options;
 pub fn run(args: &[String]) {
     let args = args.to_vec();
 
-    let ace_container_path = "ACE_CONTAINER_PATH";
+    let ace_container_path_env = "ACE_CONTAINER_PATH";
     // TODO: settting.rsからの読み込みに変更
-    // env::set_var(ace_container_path, "/var/lib/ace-containers");
-    env::set_var(ace_container_path, "/home/vagrant/ace-containers");
+    let home_dir = env::home_dir().expect("Cannot get $HOME");
+    let ace_path = format!("{}/{}", home_dir.display(), "ace-containers");
+    env::set_var(ace_container_path_env, ace_path);
 
     let matches = options::get_runner_options(args).expect("Invalid arguments");
 
@@ -63,10 +64,10 @@ pub fn run(args: &[String]) {
     // container.struct_network();
 
     // mounts
-    // println!("Mount rootfs ... ");
-    // mounts::mount_rootfs().expect("Can not mount root dir.");
-    // println!("Mount container path ... ");
-    // mounts::mount_container_path(container.path_str()).expect("Can not mount specify dir.");
+    println!("Mount rootfs ... ");
+    mounts::mount_rootfs().expect("Can not mount root dir.");
+    println!("Mount container path ... ");
+    mounts::mount_container_path(container.path_str()).expect("Can not mount specify dir.");
 
     unshare(
         CloneFlags::CLONE_NEWPID
@@ -74,7 +75,7 @@ pub fn run(args: &[String]) {
             | CloneFlags::CLONE_NEWUTS
             | CloneFlags::CLONE_NEWNS
             | CloneFlags::CLONE_NEWUSER
-            // | CloneFlags::CLONE_NEWNET,
+            | CloneFlags::CLONE_NEWNET,
     )
     .expect("Can not unshare(2).");
 
