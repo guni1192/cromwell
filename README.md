@@ -12,12 +12,12 @@ Ownership Managed Container Runntime
 ## Usage
 
 ```bash
-$ ace run -n <CONTAINER_NAME>
+$ cromwell run -n <CONTAINER_NAME>
 [root@<CONTAINER_NAME> /]# 
 ```
 
 ```bash
-$ ace run -n <CONTAINER_NAME> --exec 'ls -al'
+$ cromwell run -n <CONTAINER_NAME> --exec 'ls -al'
 bin  boot  dev  etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
 ```
 ## Test
