@@ -5,7 +5,7 @@ use std::process;
 use std::process::exit;
 
 use nix::sched::*;
-use nix::unistd::{chdir, chroot};
+use nix::unistd::{chdir, chroot, getpgid, getuid, Pid, Uid};
 
 use super::bootstrap::pacstrap;
 use super::container;
@@ -40,7 +40,16 @@ pub fn run(args: &[String]) {
         .opt_str("name")
         .expect("invalied arguments about container name");
 
-    let container = container::Container::new(container_name.clone(), command);
+    let pid = process::id();
+    println!("pid: {}", pid);
+
+    let pid = Pid::from_raw(pid as i32);
+    let pgid = getpgid(Some(pid)).expect("Could not pgid: ");
+    println!("pgid: {}", pgid);
+
+    let uid = getuid();
+
+    let container = container::Container::new(container_name.clone(), command, uid, pgid);
 
     if matches.opt_present("del") {
         container.delete().expect("Faild to remove container: ");
@@ -55,9 +64,6 @@ pub fn run(args: &[String]) {
         fs::create_dir_all(container.path_str()).expect("Could not create directory to your path");
         pacstrap(container.path_str());
     }
-
-    let pid = process::id();
-    println!("pid: {}", pid);
 
     container.prepare();
     // println!("Creating network...");

@@ -3,7 +3,7 @@ use std::ffi::CString;
 use std::fs;
 
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{execv, fork, sethostname, ForkResult};
+use nix::unistd::{execv, fork, sethostname, setpgid, setuid, ForkResult, Pid, Uid};
 
 use super::mounts;
 
@@ -13,17 +13,21 @@ pub struct Container {
     pub name: String,
     pub path: String,
     pub command: String,
+    pub uid: Uid,
+    pub pgid: Pid,
     pub network: Network,
 }
 
 impl Container {
-    pub fn new(name: String, command: String) -> Container {
+    pub fn new(name: String, command: String, uid: Uid, pgid: Pid) -> Container {
         let path = format!("{}/{}", get_containers_path().unwrap(), name.clone());
 
         Container {
             name: name.clone(),
             path: path,
             command: command,
+            uid: uid,
+            pgid: pgid,
             network: initialize_network(name),
         }
     }
@@ -73,7 +77,13 @@ impl Container {
         println!("fork(2) start!");
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
+                println!("setuid({})", self.uid);
+                setuid(self.uid).expect("Failed setuid(2)");
+
                 println!("container pid: {}", child);
+
+                setpgid(child, self.pgid).expect("Failed setpgid(2)");
+
                 match waitpid(child, None).expect("waitpid faild") {
                     WaitStatus::Exited(_, _) => {}
                     WaitStatus::Signaled(_, _, _) => {}
