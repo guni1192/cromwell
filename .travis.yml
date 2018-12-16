@@ -2,6 +2,7 @@ language: rust
 sudo: required
 cache: cargo
 rust:
+  - stable
   - nightly
 before_script:
   - export PATH=$HOME/.cargo/bin:$PATH
@@ -9,10 +10,14 @@ before_script:
   - cargo install cargo-travis || echo "cargo-travis already installed"
   - cargo install-update -a # update outdated cached binaries
   - rustup component add rustfmt-preview
+cache: cargo
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
 script:
   - cargo fmt --all -- --check --verbose
   - cargo build --verbose --all
-  - env
   - cargo test --verbose
 notifications:
   slack:

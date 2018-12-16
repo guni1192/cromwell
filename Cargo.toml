@@ -1,5 +1,5 @@
 [package]
-name = "ace"
+name = "cromwell"
 version = "0.1.0"
 authors = ["guni973 <ad2314ce71926@gmail.com>"]
 edition = "2018"

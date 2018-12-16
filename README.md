@@ -1,8 +1,8 @@
-# ACE
+# Cromwell
 
 [![Build Status](https://travis-ci.org/guni1192/ace.svg?branch=master)](https://travis-ci.org/guni1192/ace)
 
-ArchLinux Container Engine
+Ownership Managed Container Runntime
 
 ## Dependency
 
@@ -12,12 +12,12 @@ ArchLinux Container Engine
 ## Usage
 
 ```bash
-$ sudo ace run -n <CONTAINER_NAME>
+$ cromwell run -n <CONTAINER_NAME>
 [root@<CONTAINER_NAME> /]# 
 ```
 
 ```bash
-$ sudo ace run -n <CONTAINER_NAME> --exec 'ls -al'
+$ cromwell run -n <CONTAINER_NAME> --exec 'ls -al'
 bin  boot  dev  etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
 ```
 ## Test
