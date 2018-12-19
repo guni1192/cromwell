@@ -3,7 +3,7 @@ use std::ffi::CString;
 use std::fs;
 
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{execv, fork, sethostname, setpgid, setuid, ForkResult, Pid, Uid};
+use nix::unistd::{execv, fork, sethostname, ForkResult, Pid, Uid};
 
 use super::mounts;
 
@@ -77,12 +77,10 @@ impl Container {
         println!("fork(2) start!");
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
-                println!("setuid({})", self.uid);
-                setuid(self.uid).expect("Failed setuid(2)");
+                // println!("setuid({})", self.uid);
+                // setuid(self.uid).expect("Failed setuid(2)");
 
                 println!("container pid: {}", child);
-
-                setpgid(child, self.pgid).expect("Failed setpgid(2)");
 
                 match waitpid(child, None).expect("waitpid faild") {
                     WaitStatus::Exited(_, _) => {}
@@ -92,6 +90,7 @@ impl Container {
             }
             Ok(ForkResult::Child) => {
                 sethostname(&self.name).expect("Could not set hostname");
+                // setpgid(Pid::from_raw(1), Pid::from_raw(1000)).expect("Failed setpgid(2)");
 
                 fs::create_dir_all("proc").unwrap_or_else(|why| {
                     eprintln!("{:?}", why.kind());

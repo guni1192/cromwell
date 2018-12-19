@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process;
 use std::process::exit;
 
-use nix::sched::*;
+use nix::sched::{unshare, CloneFlags};
 use nix::unistd::{chdir, chroot, getpgid, getuid, Pid, Uid};
 
 use super::bootstrap::pacstrap;
