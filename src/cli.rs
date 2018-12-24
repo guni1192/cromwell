@@ -5,7 +5,9 @@ use std::process;
 use std::process::exit;
 
 use nix::sched::{unshare, CloneFlags};
-use nix::unistd::{chdir, chroot, getpgid, getuid, Pid, Uid};
+use nix::unistd::{chdir, chroot, getpgid, getuid, Pid};
+
+use dirs::home_dir;
 
 use super::bootstrap::pacstrap;
 use super::container;
@@ -20,7 +22,7 @@ pub fn run(args: &[String]) {
 
     let ace_container_path_env = "ACE_CONTAINER_PATH";
     // TODO: settting.rsからの読み込みに変更
-    let home_dir = env::home_dir().expect("Cannot get $HOME");
+    let home_dir = home_dir().expect("Cannot get $HOME");
     let ace_path = format!("{}/{}", home_dir.display(), "ace-containers");
     env::set_var(ace_container_path_env, ace_path);
 

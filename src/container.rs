@@ -24,10 +24,10 @@ impl Container {
 
         Container {
             name: name.clone(),
-            path: path,
-            command: command,
-            uid: uid,
-            pgid: pgid,
+            path,
+            command,
+            uid,
+            pgid,
             network: initialize_network(name),
         }
     }

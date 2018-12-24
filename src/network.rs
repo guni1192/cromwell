@@ -48,15 +48,9 @@ impl Bridge {
     }
 
     pub fn existed(&self) -> bool {
-        let addrs = nix::ifaddrs::getifaddrs().unwrap();
-        let ifname = addrs
-            .into_iter()
-            .filter(|ifaddr| ifaddr.interface_name == self.name)
-            .next();
-        match ifname {
-            Some(_) => true,
-            None => false,
-        }
+        let mut addrs = nix::ifaddrs::getifaddrs().unwrap();
+        let ifname = addrs.find(|ifaddr| ifaddr.interface_name == self.name);
+        ifname.is_some()
     }
 }
 
@@ -69,11 +63,11 @@ impl Network {
         container_ip: IpAddr,
     ) -> Network {
         Network {
-            namespace: namespace,
-            bridge: bridge,
-            veth_host: veth_host,
-            veth_guest: veth_guest,
-            container_ip: container_ip,
+            namespace,
+            bridge,
+            veth_host,
+            veth_guest,
+            container_ip,
             pid: process::id(),
         }
     }
@@ -129,15 +123,9 @@ impl Network {
     }
 
     pub fn existed_veth(&self) -> bool {
-        let addrs = nix::ifaddrs::getifaddrs().unwrap();
-        let ifname = addrs
-            .into_iter()
-            .filter(|ifaddr| ifaddr.interface_name == self.veth_host)
-            .next();
-        match ifname {
-            Some(_) => true,
-            None => false,
-        }
+        let mut addrs = nix::ifaddrs::getifaddrs().unwrap();
+        let ifname = addrs.find(|ifaddr| ifaddr.interface_name == self.veth_host);
+        ifname.is_some()
     }
 
     pub fn add_container_network(&self) -> Result<(), ()> {

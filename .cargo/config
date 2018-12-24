@@ -1,0 +1,2 @@
+[alias]
+arch01 = "run -- run -n arch01"
