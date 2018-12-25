@@ -13,7 +13,6 @@ use clap::ArgMatches;
 
 use super::bootstrap::pacstrap;
 use super::container;
-use super::help::print_help;
 use super::mounts;
 use super::network::{Bridge, Network};
 use super::options;
@@ -25,11 +24,6 @@ pub fn run(sub_m: &ArgMatches) {
     let home_dir = home_dir().expect("Cannot get $HOME");
     let ace_path = format!("{}/{}", home_dir.display(), "ace-containers");
     env::set_var(ace_container_path_env, ace_path);
-
-    if sub_m.is_present("help") {
-        print_help();
-        exit(0);
-    }
 
     let command = match sub_m.value_of("exec") {
         Some(c) => c.to_string(),

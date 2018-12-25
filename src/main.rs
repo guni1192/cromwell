@@ -6,12 +6,9 @@ mod bootstrap;
 mod cli;
 mod commands;
 mod container;
-mod help;
 mod mounts;
 mod network;
 mod options;
-
-use self::help::print_help;
 
 fn main() {
     let mut app = App::new("Cromwell")
@@ -30,6 +27,18 @@ fn main() {
                         .short("n")
                         .help("Specify container name")
                         .required(true)
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("exec command")
+                        .long("exec")
+                        .help("Specify exec your command")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("delete container")
+                        .long("del")
+                        .help("delete container dir")
                         .takes_value(true),
                 ),
         )
