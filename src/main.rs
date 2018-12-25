@@ -3,12 +3,12 @@ use std::process::exit;
 use clap::{App, Arg, SubCommand};
 
 mod bootstrap;
-mod cli;
 mod commands;
 mod container;
 mod mounts;
 mod network;
 mod options;
+mod runner;
 
 fn main() {
     let mut app = App::new("Cromwell")
@@ -45,7 +45,7 @@ fn main() {
         .get_matches();
 
     match &app_matches.subcommand() {
-        ("run", Some(sub_m)) => cli::run((*sub_m).clone()),
+        ("run", Some(sub_m)) => runner::run((*sub_m).clone()),
         // Some("network", sub_m) => cli::network(sub_m),
         _ => {
             eprintln!("Unexpected arguments");
