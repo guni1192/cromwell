@@ -20,29 +20,23 @@ use super::options;
 
 // TODO: deamonize option
 // pub fn run(args: &[String]) {
-pub fn run(sub_m: ArgMatches) {
-    // let args = args.to_vec();
-
+pub fn run(sub_m: &ArgMatches) {
     let ace_container_path_env = "ACE_CONTAINER_PATH";
-    // TODO: settting.rsからの読み込みに変更
     let home_dir = home_dir().expect("Cannot get $HOME");
     let ace_path = format!("{}/{}", home_dir.display(), "ace-containers");
     env::set_var(ace_container_path_env, ace_path);
 
-    // let matches = options::get_runner_options(args).expect("Invalid arguments");
-    let matches = &sub_m;
-
-    if matches.is_present("help") {
+    if sub_m.is_present("help") {
         print_help();
         exit(0);
     }
 
-    let command = match matches.value_of("exec") {
+    let command = match sub_m.value_of("exec") {
         Some(c) => c.to_string(),
         None => "/bin/bash".to_string(),
     };
 
-    let container_name = matches
+    let container_name = sub_m
         .value_of("name")
         .expect("invalied arguments about container name");
 
@@ -57,7 +51,7 @@ pub fn run(sub_m: ArgMatches) {
 
     let container = container::Container::new(container_name.to_string(), command, uid, pgid);
 
-    if matches.is_present("del") {
+    if sub_m.is_present("del") {
         container.delete().expect("Faild to remove container: ");
     }
 
