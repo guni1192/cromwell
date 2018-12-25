@@ -45,12 +45,12 @@ fn main() {
         .get_matches();
 
     match &app_matches.subcommand() {
-        ("run", Some(sub_m)) => cli::run(sub_m.clone()),
+        ("run", Some(sub_m)) => cli::run((*sub_m).clone()),
         // Some("network", sub_m) => cli::network(sub_m),
         _ => {
             eprintln!("Unexpected arguments");
             app.print_help().unwrap();
-            println!("");
+            println!();
             exit(1);
         }
     }
