@@ -18,7 +18,6 @@ use super::network::{Bridge, Network};
 use super::options;
 
 // TODO: deamonize option
-// pub fn run(args: &[String]) {
 pub fn run(sub_m: ArgMatches) {
     let ace_container_path_env = "ACE_CONTAINER_PATH";
     let home_dir = home_dir().expect("Cannot get $HOME");
