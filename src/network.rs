@@ -4,11 +4,13 @@ use std::process;
 
 use super::commands;
 
+#[allow(dead_code)]
 pub struct Bridge {
     pub name: String,
     ip: IpAddr,
 }
 
+#[allow(dead_code)]
 pub struct Network {
     pub namespace: String,
     pub bridge: Bridge,
@@ -19,7 +21,7 @@ pub struct Network {
 }
 
 // TODO: no use ip command
-
+#[allow(dead_code)]
 impl Bridge {
     pub fn new() -> Bridge {
         Bridge {
@@ -54,6 +56,7 @@ impl Bridge {
     }
 }
 
+#[allow(dead_code)]
 impl Network {
     pub fn new(
         namespace: String,

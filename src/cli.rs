@@ -86,6 +86,7 @@ pub fn run(sub_m: &ArgMatches) {
     container.run();
 }
 
+#[allow(dead_code)]
 pub fn network(args: &[String]) {
     let args = args.to_vec();
     let matches = options::get_network_options(args).expect("Invalid arguments");

@@ -35,6 +35,7 @@ impl Container {
         self.path.as_str()
     }
 
+    #[allow(dead_code)]
     pub fn struct_network(&self) {
         let network = &self.network;
         if !network.bridge.existed() {
