@@ -1,6 +1,6 @@
 # Cromwell
 
-[![Build Status](https://travis-ci.org/guni1192/ace.svg?branch=master)](https://travis-ci.org/guni1192/ace)
+[![Build Status](https://travis-ci.org/guni1192/cromwell.svg?branch=master)](https://travis-ci.org/guni1192/cromwell)
 
 Ownership Managed Container Runntime
 
