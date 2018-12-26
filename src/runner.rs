@@ -18,19 +18,19 @@ use super::network::{Bridge, Network};
 use super::options;
 
 // TODO: deamonize option
-pub fn run(sub_m: ArgMatches) {
+pub fn run(sub_m: &ArgMatches) {
     let ace_container_path_env = "ACE_CONTAINER_PATH";
     let home_dir = home_dir().expect("Cannot get $HOME");
     let ace_path = format!("{}/{}", home_dir.display(), "ace-containers");
     env::set_var(ace_container_path_env, ace_path);
 
-    let command = match sub_m.value_of("exec") {
+    let command = match sub_m.value_of("exec_command") {
         Some(c) => c.to_string(),
         None => "/bin/bash".to_string(),
     };
 
     let container_name = sub_m
-        .value_of("name")
+        .value_of("container_name")
         .expect("invalied arguments about container name");
 
     let pid = process::id();

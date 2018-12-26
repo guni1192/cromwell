@@ -11,6 +11,23 @@ Ownership Managed Container Runntime
 
 ## Usage
 
+```
+Cromwell v1.0.0
+Takashi IIGUNI <ad2314ce71926@gmail.com>
+Ownership Managed Container Runntime
+
+USAGE:
+    cromwell [SUBCOMMAND]
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+SUBCOMMANDS:
+    help    Prints this message or the help of the given subcommand(s)
+    run     run cromwell container
+```
+
 ```bash
 $ cromwell run -n <CONTAINER_NAME>
 [root@<CONTAINER_NAME> /]# 
@@ -33,3 +50,4 @@ If you want to test them in local environment, use below command.
 ```bash
 $ sudo cargo test -- --ignored
 ```
+
