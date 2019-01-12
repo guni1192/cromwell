@@ -20,8 +20,9 @@ use super::options;
 // TODO: deamonize option
 pub fn run(sub_m: &ArgMatches) {
     let ace_container_path_env = "ACE_CONTAINER_PATH";
-    let home_dir = home_dir().expect("Cannot get $HOME");
-    let ace_path = format!("{}/{}", home_dir.display(), "ace-containers");
+    // let home_dir = home_dir().expect("Cannot get $HOME");
+    // let ace_path = format!("{}/{}", home_dir.display(), "ace-containers");
+    let ace_path = format!("{}/{}", "/var/lib", "ace-containers");
     env::set_var(ace_container_path_env, ace_path);
 
     let command = match sub_m.value_of("exec_command") {

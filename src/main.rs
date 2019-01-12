@@ -40,6 +40,12 @@ fn main() {
                         .long("del")
                         .help("delete container dir")
                         .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("container_path")
+                        .long("path")
+                        .help("specify container path")
+                        .takes_value(true),
                 ),
         )
         .get_matches();
