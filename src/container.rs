@@ -76,7 +76,6 @@ impl Container {
         println!("fork(2) start!");
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
-
                 println!("container pid: {}", child);
 
                 match waitpid(child, None).expect("waitpid faild") {
