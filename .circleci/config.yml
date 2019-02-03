@@ -1,0 +1,37 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: rustlang/rust:nightly
+
+    steps:
+      - checkout
+      - restore_cache:
+          key: cache
+      - run:
+          name: Check formatting
+          command: |
+            rustup component add rustfmt-preview
+            rustfmt --version
+            cargo fmt -- --check
+      - run:
+          name: Static Analysis
+          command: |
+            rustup component add clippy
+            cargo clippy -- -D warnings
+
+      - run:
+          name: Build
+          command: |
+            rustc --version --verbose
+            cargo --version --verbose
+            cargo build --verbose
+      - run:
+          name: Test
+          command: cargo test --verbose
+      - save_cache:
+          key: cache
+          paths:
+            - "~/.cargo"
+            - "./target"

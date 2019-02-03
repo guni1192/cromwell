@@ -1,13 +1,10 @@
 # Cromwell
 
-[![Build Status](https://travis-ci.org/guni1192/cromwell.svg?branch=master)](https://travis-ci.org/guni1192/cromwell)
+[![CircleCI](https://circleci.com/gh/guni1192/cromwell/tree/master.svg?style=svg)](https://circleci.com/gh/guni1192/cromwell/tree/master)
 
-Ownership Managed Container Runntime
+Rust Rootless Container Runntime
 
 ## Dependency
-
-- arch-install-scripts
-  - pacstrap
 
 ## Usage
 
