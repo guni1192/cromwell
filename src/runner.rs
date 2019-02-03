@@ -5,29 +5,25 @@ use std::process;
 use std::process::exit;
 
 use nix::sched::{unshare, CloneFlags};
-use nix::unistd::{chdir, chroot, getpgid, getuid, Pid};
-
-use dirs::home_dir;
+use nix::unistd::{chdir, chroot, getuid};
 
 use clap::ArgMatches;
 
 use super::bootstrap::pacstrap;
 use super::container;
-use super::mounts;
+// use super::mounts;
 use super::network::{Bridge, Network};
 use super::options;
 
 // TODO: deamonize option
 pub fn run(sub_m: &ArgMatches) {
     let ace_container_path_env = "ACE_CONTAINER_PATH";
-    // let home_dir = home_dir().expect("Cannot get $HOME");
-    // let ace_path = format!("{}/{}", home_dir.display(), "ace-containers");
-    let ace_path = format!("{}/{}", "/var/lib", "ace-containers");
+    let ace_path = "/var/lib/cromwell/containers";
     env::set_var(ace_container_path_env, ace_path);
 
     let command = match sub_m.value_of("exec_command") {
         Some(c) => c.to_string(),
-        None => "/bin/bash".to_string(),
+        None => "/bin/sh".to_string(),
     };
 
     let container_name = sub_m
@@ -37,13 +33,13 @@ pub fn run(sub_m: &ArgMatches) {
     let pid = process::id();
     println!("pid: {}", pid);
 
-    let pid = Pid::from_raw(pid as i32);
-    let pgid = getpgid(Some(pid)).expect("Could not pgid: ");
-    println!("pgid: {}", pgid);
+    // let pid = Pid::from_raw(pid as i32);
+    // let pgid = getpgid(Some(pid)).expect("Could not pgid: ");
+    // println!("pgid: {}", pgid);
 
     let uid = getuid();
 
-    let container = container::Container::new(container_name.to_string(), command, uid, pgid);
+    let container = container::Container::new(container_name.to_string(), command, uid);
 
     if sub_m.is_present("del") {
         container.delete().expect("Faild to remove container: ");
@@ -64,18 +60,17 @@ pub fn run(sub_m: &ArgMatches) {
     // container.struct_network();
 
     // mounts
-    println!("Mount rootfs ... ");
-    mounts::mount_rootfs().expect("Can not mount root dir.");
-    println!("Mount container path ... ");
-    mounts::mount_container_path(container.path_str()).expect("Can not mount specify dir.");
+    // println!("Mount rootfs ... ");
+    // mounts::mount_rootfs().expect("Can not mount root dir.");
+    // println!("Mount container path ... ");
+    // mounts::mount_container_path(container.path_str()).expect("Can not mount specify dir.");
 
     unshare(
         CloneFlags::CLONE_NEWPID
-            | CloneFlags::CLONE_NEWIPC
             | CloneFlags::CLONE_NEWUTS
             | CloneFlags::CLONE_NEWNS
-            | CloneFlags::CLONE_NEWUSER
-            | CloneFlags::CLONE_NEWNET,
+            | CloneFlags::CLONE_NEWUSER, // | CloneFlags::CLONE_NEWNET,
+                                         // | CloneFlags::CLONE_NEWIPC
     )
     .expect("Can not unshare(2).");
 

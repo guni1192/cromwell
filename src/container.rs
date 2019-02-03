@@ -3,7 +3,7 @@ use std::ffi::CString;
 use std::fs;
 
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{execv, fork, sethostname, ForkResult, Pid, Uid};
+use nix::unistd::{execve, fork, sethostname, ForkResult, Uid};
 
 use super::mounts;
 
@@ -14,12 +14,11 @@ pub struct Container {
     pub path: String,
     pub command: String,
     pub uid: Uid,
-    pub pgid: Pid,
     pub network: Network,
 }
 
 impl Container {
-    pub fn new(name: String, command: String, uid: Uid, pgid: Pid) -> Container {
+    pub fn new(name: String, command: String, uid: Uid) -> Container {
         let path = format!("{}/{}", get_containers_path().unwrap(), name.clone());
 
         Container {
@@ -27,7 +26,6 @@ impl Container {
             path,
             command,
             uid,
-            pgid,
             network: initialize_network(name),
         }
     }
@@ -78,8 +76,6 @@ impl Container {
         println!("fork(2) start!");
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
-                // println!("setuid({})", self.uid);
-                // setuid(self.uid).expect("Failed setuid(2)");
 
                 println!("container pid: {}", child);
 
@@ -91,7 +87,6 @@ impl Container {
             }
             Ok(ForkResult::Child) => {
                 sethostname(&self.name).expect("Could not set hostname");
-                // setpgid(Pid::from_raw(1), Pid::from_raw(1000)).expect("Failed setpgid(2)");
 
                 fs::create_dir_all("proc").unwrap_or_else(|why| {
                     eprintln!("{:?}", why.kind());
@@ -101,11 +96,17 @@ impl Container {
                 mounts::mount_proc().expect("mount procfs faild.");
 
                 let cmd = CString::new(self.command.clone()).unwrap();
-                let default_shell = CString::new("/bin/bash").unwrap();
+                let default_shell = CString::new("/bin/sh").unwrap();
                 let shell_opt = CString::new("-c").unwrap();
+                let lang = CString::new("LC_ALL=C").unwrap();
+                let path = CString::new("PATH=/bin/:/usr/bin/:/usr/local/bin:/sbin").unwrap();
 
-                execv(&default_shell, &[default_shell.clone(), shell_opt, cmd])
-                    .expect("execution faild.");
+                execve(
+                    &default_shell,
+                    &[default_shell.clone(), shell_opt, cmd],
+                    &[lang, path],
+                )
+                .expect("execution faild.");
             }
             Err(_) => eprintln!("Fork failed"),
         }
