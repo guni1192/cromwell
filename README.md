@@ -29,7 +29,7 @@ SUBCOMMANDS:
 ```
 
 ```bash
-$ cromwell run -n <CONTAINER_NAME>
+$ cromwell run -n <CONTAINER_NAME> --exec /bin/bash
 [root@<CONTAINER_NAME> /]# 
 ```
 
@@ -51,3 +51,9 @@ If you want to test them in local environment, use below command.
 $ sudo cargo test -- --ignored
 ```
 
+
+## Build
+
+```
+$ sudo cargo make --makefile release.toml deploy
+```

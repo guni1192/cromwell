@@ -1,0 +1,49 @@
+[tasks.format]
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt"]
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.build]
+command = "cargo"
+args = ["build", "--release"]
+dependencies = ["clean"]
+
+[tasks.test]
+command = "cargo"
+args = ["test"]
+dependencies = ["clean"]
+
+[tasks.setcap]
+command = "setcap"
+args = ["CAP_SYS_ADMIN=eip", "/usr/local/bin/cromwell"]
+dependencies = ["chown"]
+
+[tasks.install]
+command = "cp"
+args = ["./target/release/cromwell", "/usr/local/bin/cromwell"]
+dependencies = ["clean"]
+
+[tasks.chmod]
+command = "chmod"
+args = ["750", "/usr/local/bin/cromwell"]
+dependencies = ["install"]
+
+[tasks.chown]
+command = "chown"
+args = ["root:cromwell", "/usr/local/bin/cromwell"]
+dependencies = ["install"]
+
+[tasks.deploy]
+dependencies = [
+    "format",
+    "build",
+    "test",
+    "install",
+    "setcap",
+    "chmod",
+    "chown"
+]

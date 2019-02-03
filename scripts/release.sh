@@ -1,3 +1,4 @@
 #!/bin/bash
 
-cp ./target/release/ace /usr/local/bin/ace && setcap CAP_SYS_ADMIN=eip /usr/local/bin/ace
+cp ./target/release/cromwell /usr/local/bin/cromwell && setcap CAP_SYS_ADMIN=eip /usr/local/bin/cromwell
+getcap /usr/local/bin/cromwell
