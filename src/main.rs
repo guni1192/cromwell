@@ -12,7 +12,7 @@ mod runner;
 
 fn main() {
     let mut app = App::new("Cromwell")
-        .version("v1.0.0")
+        .version("v0.1.0")
         .author("Takashi IIGUNI <ad2314ce71926@gmail.com>")
         .about("Ownership Managed Container Runntime");
     let app_matches = &app
