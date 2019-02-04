@@ -1,5 +1,6 @@
 use std::process::Command;
 
+#[allow(dead_code)]
 pub fn pacstrap(container_path: &str) {
     let mut pacstrap = Command::new("pacstrap")
         .arg("-i")

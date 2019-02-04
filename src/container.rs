@@ -9,14 +9,11 @@ use nix::unistd::{execve, sethostname, Uid};
 
 use super::mounts;
 
-use super::network::{Bridge, Network};
-
 pub struct Container {
     pub name: String,
     pub path: String,
     pub command: String,
     pub uid: Uid,
-    pub network: Network,
 }
 
 impl Container {
@@ -28,38 +25,7 @@ impl Container {
             path,
             command,
             uid,
-            network: initialize_network(name),
         }
-    }
-    pub fn path_str(&self) -> &str {
-        self.path.as_str()
-    }
-
-    #[allow(dead_code)]
-    pub fn struct_network(&self) {
-        let network = &self.network;
-        if !network.bridge.existed() {
-            println!("Creating {} ...", network.bridge.name);
-            network
-                .bridge
-                .add_bridge_ace0()
-                .expect("Could not create bridge");
-        }
-        if !network.existed_namespace() {
-            network
-                .add_network_namespace()
-                .expect("failed adding network namespace");
-            println!("Created namespace {}", network.bridge.name);
-        }
-
-        if !network.existed_veth() {
-            network.add_veth().expect("failed adding veth peer");
-            println!("Created veth_host: {}", network.veth_host);
-            println!("Created veth_guest: {}", network.veth_guest);
-        }
-        network
-            .add_container_network()
-            .expect("Could not add container network");
     }
 
     pub fn prepare(&self) {
@@ -81,7 +47,7 @@ impl Container {
         )
         .expect("Can not unshare(2).");
 
-        chroot(self.path_str()).expect("chroot failed.");
+        chroot(self.path.as_str()).expect("chroot failed.");
         chdir("/").expect("cd / failed.");
     }
 
@@ -122,19 +88,10 @@ impl Container {
             Err(_) => eprintln!("Fork failed"),
         }
     }
+
     pub fn delete(&self) -> std::io::Result<()> {
         fs::remove_dir_all(&self.path)
     }
-}
-
-fn initialize_network(name: String) -> Network {
-    Network::new(
-        format!("{}-ns", name),
-        Bridge::new(),
-        format!("{}_host", name),
-        format!("{}_guest", name),
-        "172.0.0.2".parse().unwrap(),
-    )
 }
 
 pub fn get_containers_path() -> Result<String, env::VarError> {

@@ -1,6 +1,4 @@
 use std::env;
-use std::fs;
-use std::path::Path;
 use std::process;
 use std::process::exit;
 
@@ -9,7 +7,7 @@ use nix::unistd::getuid;
 
 use clap::ArgMatches;
 
-use super::bootstrap::pacstrap;
+// use super::bootstrap::pacstrap;
 use super::container;
 // use super::mounts;
 use super::network::{Bridge, Network};
@@ -41,15 +39,17 @@ pub fn run(sub_m: &ArgMatches) {
         container.delete().expect("Faild to remove container: ");
     }
 
+    // TODO: pull rootfs docker image by DockerHub
     // bootstraping
-    if !Path::new(&container.path).exists() {
-        println!(
-            "Creating container bootstrap to {} ...",
-            container.path_str()
-        );
-        fs::create_dir_all(container.path_str()).expect("Could not create directory to your path");
-        pacstrap(container.path_str());
-    }
+    // if !Path::new(&container.path).exists() {
+    //     println!(
+    //         "Creating container bootstrap to {} ...",
+    //         container.path.as_str()
+    //     );
+    //     fs::create_dir_all(container.path.as_str())
+    //         .expect("Could not create directory to your path");
+    //     pacstrap(container.path_str());
+    // }
 
     container.prepare();
 
