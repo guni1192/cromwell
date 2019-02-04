@@ -72,9 +72,7 @@ impl Container {
 
         fs::copy("/etc/hosts", c_hosts).expect("Failed copy file: ");
         fs::copy("/etc/resolv.conf", c_resolv).expect("Failed copy file: ");
-    }
 
-    pub fn run(&self) {
         unshare(
             CloneFlags::CLONE_NEWPID
                 | CloneFlags::CLONE_NEWUTS
@@ -85,7 +83,9 @@ impl Container {
 
         chroot(self.path_str()).expect("chroot failed.");
         chdir("/").expect("cd / failed.");
+    }
 
+    pub fn run(&self) {
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
                 println!("container pid: {}", child);
