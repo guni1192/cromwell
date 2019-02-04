@@ -7,7 +7,7 @@ use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, fork, ForkResult};
 use nix::unistd::{execve, sethostname, Uid};
 
-// use super::mounts;
+use super::mounts;
 
 use super::network::{Bridge, Network};
 
@@ -75,6 +75,17 @@ impl Container {
     }
 
     pub fn run(&self) {
+        unshare(
+            CloneFlags::CLONE_NEWPID
+                | CloneFlags::CLONE_NEWUTS
+                | CloneFlags::CLONE_NEWNS
+                | CloneFlags::CLONE_NEWUSER,
+        )
+        .expect("Can not unshare(2).");
+
+        chroot(self.path_str()).expect("chroot failed.");
+        chdir("/").expect("cd / failed.");
+
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
                 println!("container pid: {}", child);
@@ -86,25 +97,14 @@ impl Container {
                 }
             }
             Ok(ForkResult::Child) => {
-                unshare(
-                    CloneFlags::CLONE_NEWPID
-                        | CloneFlags::CLONE_NEWUTS
-                        | CloneFlags::CLONE_NEWNS
-                        | CloneFlags::CLONE_NEWUSER,
-                )
-                .expect("Can not unshare(2).");
-
-                chroot(self.path_str()).expect("chroot failed.");
-                chdir("/").expect("cd / failed.");
-
                 sethostname(&self.name).expect("Could not set hostname");
 
                 fs::create_dir_all("proc").unwrap_or_else(|why| {
                     eprintln!("{:?}", why.kind());
                 });
 
-                // println!("Mount procfs ... ");
-                // mounts::mount_proc().expect("mount procfs failed");
+                println!("Mount procfs ... ");
+                mounts::mount_proc().expect("mount procfs failed");
 
                 let cmd = CString::new(self.command.clone()).unwrap();
                 let default_shell = CString::new("/bin/sh").unwrap();

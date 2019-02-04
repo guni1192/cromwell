@@ -17,33 +17,14 @@ command = "cargo"
 args = ["test"]
 dependencies = ["clean"]
 
-[tasks.setcap]
-command = "setcap"
-args = ["CAP_SYS_ADMIN=eip", "/usr/local/bin/cromwell"]
-dependencies = ["chown"]
-
 [tasks.install]
-command = "cp"
-args = ["./target/release/cromwell", "/usr/local/bin/cromwell"]
+command = "cargo"
+args = ["install", "--git", "https://github.com/guni1192/cromwell"]
 dependencies = ["clean"]
 
-[tasks.chmod]
-command = "chmod"
-args = ["750", "/usr/local/bin/cromwell"]
-dependencies = ["install"]
-
-[tasks.chown]
-command = "chown"
-args = ["root:cromwell", "/usr/local/bin/cromwell"]
-dependencies = ["install"]
-
-[tasks.deploy]
+[tasks.workflow]
 dependencies = [
     "format",
     "build",
     "test",
-    "install",
-    "setcap",
-    "chmod",
-    "chown"
 ]

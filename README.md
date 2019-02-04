@@ -6,6 +6,20 @@ Rust Rootless Container Runntime
 
 ## Dependency
 
+Enable user namespaces
+
+```
+$ sudo sysctl kernel.unprivileged_userns_clone=1
+```
+
+
+
+## Installation
+
+```
+$ cargo install --git https://github.com/guni1192/cromwell
+```
+
 ## Usage
 
 ```
@@ -34,23 +48,15 @@ $ cromwell run -n <CONTAINER_NAME> --exec /bin/bash
 $ cromwell run -n <CONTAINER_NAME> --exec 'ls -al'
 bin  boot  dev  etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
 ```
+
 ## Test
 
 ```
 $ cargo test
 ```
 
-Testing about network module is needed root.  
-Their unit test is determined ignore elements because travis ci can not use cargo test in root.  
-If you want to test them in local environment, use below command.  
-
-```bash
-$ sudo cargo test -- --ignored
-```
-
-
 ## Build
 
 ```
-$ sudo cargo make --makefile release.toml deploy
+$ cargo make --makefile release.toml workflow
 ```
