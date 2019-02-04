@@ -13,7 +13,7 @@ fn main() {
     let mut app = App::new(crate_name!())
         .version(crate_version!())
         .author("Takashi IIGUNI <ad2314ce71926@gmail.com>")
-        .about("Ownership Managed Container Runntime");
+        .about("Rust Rootless Container Runntime");
     let app_matches = &app
         .clone()
         .subcommand(

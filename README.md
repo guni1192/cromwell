@@ -34,9 +34,9 @@ $ cargo install --git https://github.com/guni1192/cromwell
 ## Usage
 
 ```
-Cromwell v1.0.0
+cromwell 0.1.1
 Takashi IIGUNI <ad2314ce71926@gmail.com>
-Ownership Managed Container Runntime
+Rust Rootless Container Runntime
 
 USAGE:
     cromwell [SUBCOMMAND]
