@@ -88,11 +88,11 @@ impl Container {
             Ok(ForkResult::Child) => {
                 unshare(
                     CloneFlags::CLONE_NEWPID
-                    | CloneFlags::CLONE_NEWUTS
-                    | CloneFlags::CLONE_NEWNS
-                    | CloneFlags::CLONE_NEWUSER,
-                    )
-                    .expect("Can not unshare(2).");
+                        | CloneFlags::CLONE_NEWUTS
+                        | CloneFlags::CLONE_NEWNS
+                        | CloneFlags::CLONE_NEWUSER,
+                )
+                .expect("Can not unshare(2).");
 
                 chroot(self.path_str()).expect("chroot failed.");
                 chdir("/").expect("cd / failed.");
@@ -116,9 +116,8 @@ impl Container {
                     &default_shell,
                     &[default_shell.clone(), shell_opt, cmd],
                     &[lang, path],
-                    )
-                    .expect("execution faild.");
-
+                )
+                .expect("execution faild.");
             }
             Err(_) => eprintln!("Fork failed"),
         }
@@ -135,7 +134,7 @@ fn initialize_network(name: String) -> Network {
         format!("{}_host", name),
         format!("{}_guest", name),
         "172.0.0.2".parse().unwrap(),
-        )
+    )
 }
 
 pub fn get_containers_path() -> Result<String, env::VarError> {
