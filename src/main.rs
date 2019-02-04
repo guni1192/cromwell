@@ -1,6 +1,6 @@
 use std::process::exit;
 
-use clap::{App, Arg, SubCommand, crate_name,crate_version};
+use clap::{crate_name, crate_version, App, Arg, SubCommand};
 
 mod bootstrap;
 mod commands;
