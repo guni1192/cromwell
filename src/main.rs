@@ -7,7 +7,6 @@ mod commands;
 mod container;
 mod mounts;
 mod network;
-mod options;
 mod runner;
 
 fn main() {

@@ -1,17 +1,11 @@
 use std::env;
 use std::process;
-use std::process::exit;
-
-// use nix::sched::{unshare, CloneFlags};
-use nix::unistd::getuid;
 
 use clap::ArgMatches;
+use nix::unistd::getuid;
 
 // use super::bootstrap::pacstrap;
 use super::container;
-// use super::mounts;
-use super::network::{Bridge, Network};
-use super::options;
 
 // TODO: deamonize option
 pub fn run(sub_m: &ArgMatches) {
@@ -54,43 +48,4 @@ pub fn run(sub_m: &ArgMatches) {
     container.prepare();
 
     container.run();
-}
-
-#[allow(dead_code)]
-pub fn network(args: &[String]) {
-    let args = args.to_vec();
-    let matches = options::get_network_options(args).expect("Invalid arguments");
-
-    let container_name = matches
-        .opt_str("name")
-        .expect("invalied arguments about container name");
-
-    let network = Network::new(
-        format!("{}-ns", &container_name),
-        Bridge::new(),
-        format!("{}_host", &container_name),
-        format!("{}_guest", &container_name),
-        "172.0.0.2".parse().unwrap(),
-    );
-
-    if matches.opt_present("create-bridge") {
-        network
-            .bridge
-            .add_bridge_ace0()
-            .expect("Could not create bridge");
-        exit(0);
-    }
-
-    if matches.opt_present("delete-bridge") {
-        network
-            .bridge
-            .del_bridge_ace0()
-            .expect("Could not delete bridge");
-        exit(0);
-    }
-
-    if matches.opt_present("clean") {
-        network.clean().expect("Failed clean up network");
-        exit(0);
-    }
 }
