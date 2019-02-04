@@ -2,6 +2,7 @@
 name = "cromwell"
 version = "0.1.0"
 authors = ["Takashi IIGUNI <ad2314ce71926@gmail.com>"]
+description = "Rust Rootless Container Runtime"
 license = "MIT"
 repository = "https://github.com/guni192/cromwell"
 edition = "2018"
