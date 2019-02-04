@@ -18,6 +18,12 @@ $ sudo sysctl kernel.unprivileged_userns_clone=1
 ## Installation
 
 ```
+$ cargo install cromwell
+```
+
+or 
+
+```
 $ cargo install --git https://github.com/guni1192/cromwell
 ```
 
