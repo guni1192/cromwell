@@ -1,6 +1,6 @@
 use std::process::exit;
 
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg, SubCommand, crate_name,crate_version};
 
 mod bootstrap;
 mod commands;
@@ -10,15 +10,15 @@ mod network;
 mod runner;
 
 fn main() {
-    let mut app = App::new("Cromwell")
-        .version("v0.1.0")
+    let mut app = App::new(crate_name!())
+        .version(crate_version!())
         .author("Takashi IIGUNI <ad2314ce71926@gmail.com>")
         .about("Ownership Managed Container Runntime");
     let app_matches = &app
         .clone()
         .subcommand(
             SubCommand::with_name("run")
-                .version("v1.0.0")
+                .version(crate_version!())
                 .about("run cromwell container")
                 .arg(
                     Arg::with_name("container_name")
