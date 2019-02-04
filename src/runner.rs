@@ -4,8 +4,8 @@ use std::path::Path;
 use std::process;
 use std::process::exit;
 
-use nix::sched::{unshare, CloneFlags};
-use nix::unistd::{chdir, chroot, getuid};
+// use nix::sched::{unshare, CloneFlags};
+use nix::unistd::getuid;
 
 use clap::ArgMatches;
 
@@ -33,10 +33,6 @@ pub fn run(sub_m: &ArgMatches) {
     let pid = process::id();
     println!("pid: {}", pid);
 
-    // let pid = Pid::from_raw(pid as i32);
-    // let pgid = getpgid(Some(pid)).expect("Could not pgid: ");
-    // println!("pgid: {}", pgid);
-
     let uid = getuid();
 
     let container = container::Container::new(container_name.to_string(), command, uid);
@@ -56,27 +52,6 @@ pub fn run(sub_m: &ArgMatches) {
     }
 
     container.prepare();
-    // println!("Creating network...");
-    // container.struct_network();
-
-    // mounts
-    // println!("Mount rootfs ... ");
-    // mounts::mount_rootfs().expect("Can not mount root dir.");
-    // println!("Mount container path ... ");
-    // mounts::mount_container_path(container.path_str()).expect("Can not mount specify dir.");
-
-    unshare(
-        CloneFlags::CLONE_NEWPID
-            | CloneFlags::CLONE_NEWUTS
-            | CloneFlags::CLONE_NEWNS
-            | CloneFlags::CLONE_NEWUSER, // | CloneFlags::CLONE_NEWNET,
-                                         // | CloneFlags::CLONE_NEWIPC
-    )
-    .expect("Can not unshare(2).");
-
-    chroot(container.path_str()).expect("chroot failed.");
-
-    chdir("/").expect("cd / failed.");
 
     container.run();
 }

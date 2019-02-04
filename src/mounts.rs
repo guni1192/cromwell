@@ -1,6 +1,7 @@
 use nix::mount::{mount, MsFlags};
 use nix::Error;
 
+#[allow(dead_code)]
 pub fn mount_proc() -> Result<(), Error> {
     mount(
         Some("proc"),
