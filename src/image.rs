@@ -15,37 +15,40 @@ impl Image {
 
     pub fn pull(&self) -> Result<(), reqwest::Error> {
         // TODO: pull from dockerhub
-        let res_json: String = reqwest::get(
-            "https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/alpine:pull",
-        )?
-        .text()?;
-        let body: Value = serde_json::from_str(res_json.as_str()).expect("hoge");
+        let auth_url = format!(
+            "https://auth.docker.io/token?service=registry.docker.io&scope=repository:{}:pull",
+            self.name
+        );
+        let res_json: String = reqwest::get(auth_url.as_str())?.text()?;
+        let body: Value = serde_json::from_str(res_json.as_str()).expect("parse json failed");
 
         if let Value::String(token) = &body["token"] {
-            println!("{:#?}", token);
+            // println!("{:#?}", token);
+            let manifests_url = format!(
+                "https://registry.hub.docker.com/v2/{}/manifests/latest",
+                self.name
+            );
             let res = reqwest::Client::new()
-                .get("https://registry.hub.docker.com/v2/library/alpine/manifests/latest")
+                .get(manifests_url.as_str())
                 .bearer_auth(token)
-                // .header(WWW_AUTHENTICATE(Authorization(Bearer { token: token })))
                 .send()?
                 .text()?;
-            // println!("{:#?}", res.clone());
-            let body: Value = serde_json::from_str(res.as_str()).expect("hoge");
-            if let Value::Array(fsLayers) = &body["fsLayers"] {
-                for fsLayer in fsLayers {
-                    println!("{}", fsLayer["blobSum"]);
-                    if let Value::String(blobSum) = &fsLayer["blobSum"] {
+
+            let body: Value = serde_json::from_str(res.as_str()).expect("parse json failed");
+            if let Value::Array(fs_layers) = &body["fsLayers"] {
+                for fs_layer in fs_layers {
+                    // println!("{}", fs_layer["blobSum"]);
+                    if let Value::String(blob_sum) = &fs_layer["blobSum"] {
                         let url = format!(
-                            "https://registry.hub.docker.com/v2/library/alpine/blobs/{}",
-                            blobSum
+                            "https://registry.hub.docker.com/v2/{}/blobs/{}",
+                            self.name, blob_sum
                         );
 
                         let mut res = reqwest::Client::new()
                             .get(url.as_str())
                             .bearer_auth(token)
-                            .send()
-                            .expect("hoge");
-                        let mut out = File::create(format!("{}.tar.gz", blobSum))
+                            .send()?;
+                        let mut out = File::create(format!("{}.tar.gz", blob_sum))
                             .expect("failed to create file");
                         io::copy(&mut res, &mut out).expect("failed to copy content");
                     }

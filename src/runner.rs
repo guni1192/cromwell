@@ -51,7 +51,11 @@ pub fn run(sub_m: &ArgMatches) {
     container.run();
 }
 
-pub fn pull(subm: &ArgMatches) {
-    let image = Image::new("library/alpine".to_string());
+pub fn pull(sub_m: &ArgMatches) {
+    let image_name = sub_m
+        .value_of("image_name")
+        .expect("invalied arguments about image name");
+
+    let image = Image::new(image_name.to_string());
     image.pull().expect("Failed to image pull");
 }

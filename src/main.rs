@@ -51,7 +51,15 @@ fn main() {
         .subcommand(
             SubCommand::with_name("pull")
                 .version(crate_version!())
-                .about("pull oci image"),
+                .about("pull oci image")
+                .arg(
+                    Arg::with_name("image_name")
+                        .long("name")
+                        .short("n")
+                        .help("Specify image name")
+                        .required(true)
+                        .takes_value(true),
+                ),
         )
         .get_matches();
 
