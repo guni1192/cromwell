@@ -6,6 +6,7 @@ use nix::unistd::getuid;
 
 // use super::bootstrap::pacstrap;
 use super::container;
+use super::image::Image;
 
 // TODO: deamonize option
 pub fn run(sub_m: &ArgMatches) {
@@ -48,4 +49,9 @@ pub fn run(sub_m: &ArgMatches) {
     container.prepare();
 
     container.run();
+}
+
+pub fn pull(subm: &ArgMatches) {
+    let image = Image::new("library/alpine".to_string());
+    image.pull().expect("Failed to image pull");
 }
