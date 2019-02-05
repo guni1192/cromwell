@@ -1,8 +1,10 @@
 use std::fs::File;
 use std::io;
 
+use flate2::read::GzDecoder;
 use reqwest;
 use serde_json::{self, Value};
+use tar::Archive;
 
 pub struct Image {
     name: String,
@@ -13,8 +15,22 @@ impl Image {
         Image { name }
     }
 
+    pub fn tar_archive(&self, path: String) {
+        let tar_gz = File::open(&path).expect("");
+        let tar = GzDecoder::new(tar_gz);
+        let mut ar = Archive::new(tar);
+        let filename = path.replace("/tmp/", "");
+        let container_path = format!(
+            "/var/lib/cromwell/containers/{}",
+            &filename.replace(".tar.gz", "")
+        );
+        std::fs::create_dir(&container_path).unwrap();
+
+        ar.unpack(&container_path)
+            .expect("Failed to unpack filename");
+    }
+
     pub fn pull(&self) -> Result<(), reqwest::Error> {
-        // TODO: pull from dockerhub
         let auth_url = format!(
             "https://auth.docker.io/token?service=registry.docker.io&scope=repository:{}:pull",
             self.name
@@ -23,7 +39,6 @@ impl Image {
         let body: Value = serde_json::from_str(res_json.as_str()).expect("parse json failed");
 
         if let Value::String(token) = &body["token"] {
-            // println!("{:#?}", token);
             let manifests_url = format!(
                 "https://registry.hub.docker.com/v2/{}/manifests/latest",
                 self.name
@@ -37,7 +52,6 @@ impl Image {
             let body: Value = serde_json::from_str(res.as_str()).expect("parse json failed");
             if let Value::Array(fs_layers) = &body["fsLayers"] {
                 for fs_layer in fs_layers {
-                    // println!("{}", fs_layer["blobSum"]);
                     if let Value::String(blob_sum) = &fs_layer["blobSum"] {
                         let url = format!(
                             "https://registry.hub.docker.com/v2/{}/blobs/{}",
@@ -48,9 +62,12 @@ impl Image {
                             .get(url.as_str())
                             .bearer_auth(token)
                             .send()?;
-                        let mut out = File::create(format!("{}.tar.gz", blob_sum))
-                            .expect("failed to create file");
+                        let out_filename =
+                            format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
+                        println!("{}", out_filename);
+                        let mut out = File::create(&out_filename).expect("failed to create file");
                         io::copy(&mut res, &mut out).expect("failed to copy content");
+                        self.tar_archive(out_filename);
                     }
                 }
             }
