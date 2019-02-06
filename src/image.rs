@@ -8,11 +8,19 @@ use tar::Archive;
 
 pub struct Image {
     name: String,
+    tag: String,
 }
 
 impl Image {
-    pub fn new(name: String) -> Image {
-        Image { name }
+    pub fn new(name_and_tag: String) -> Image {
+        let mut n: Vec<&str> = name_and_tag.split(':').collect();
+        if n.len() < 2 {
+            n.push("latest");
+        }
+        Image {
+            name: n[0].to_string(),
+            tag: n[1].to_string(),
+        }
     }
 
     pub fn tar_archive(&self, path: String) {
@@ -40,8 +48,8 @@ impl Image {
 
         if let Value::String(token) = &body["token"] {
             let manifests_url = format!(
-                "https://registry.hub.docker.com/v2/{}/manifests/latest",
-                self.name
+                "https://registry.hub.docker.com/v2/{}/manifests/{}",
+                self.name, self.tag
             );
             let res = reqwest::Client::new()
                 .get(manifests_url.as_str())
@@ -64,7 +72,6 @@ impl Image {
                             .send()?;
                         let out_filename =
                             format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
-                        println!("{}", out_filename);
                         let mut out = File::create(&out_filename).expect("failed to create file");
                         io::copy(&mut res, &mut out).expect("failed to copy content");
                         self.tar_archive(out_filename);
@@ -75,4 +82,18 @@ impl Image {
 
         Ok(())
     }
+}
+
+#[test]
+fn test_init_image() {
+    let image = Image::new("library/alpine".to_string());
+    assert_eq!(image.name, "library/alpine".to_string());
+    assert_eq!(image.tag, "latest".to_string());
+}
+
+#[test]
+fn test_init_image_spec_tag() {
+    let image = Image::new("library/alpine:3.8".to_string());
+    assert_eq!(image.name, "library/alpine".to_string());
+    assert_eq!(image.tag, "3.8".to_string());
 }

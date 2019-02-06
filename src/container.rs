@@ -39,6 +39,8 @@ impl Container {
         fs::copy("/etc/hosts", c_hosts).expect("Failed copy file: ");
         fs::copy("/etc/resolv.conf", c_resolv).expect("Failed copy file: ");
 
+
+
         unshare(
             CloneFlags::CLONE_NEWPID
                 | CloneFlags::CLONE_NEWUTS
