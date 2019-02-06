@@ -1,5 +1,6 @@
-use std::fs::File;
+use std::fs::{self, File};
 use std::io;
+use std::path::Path;
 
 use flate2::read::GzDecoder;
 use reqwest;
@@ -23,7 +24,7 @@ impl Image {
         }
     }
 
-    pub fn tar_archive(&self, path: String) {
+    pub fn tar_archive(&self, path: String) -> io::Result<()> {
         let tar_gz = File::open(&path).expect("");
         let tar = GzDecoder::new(tar_gz);
         let mut ar = Archive::new(tar);
@@ -32,10 +33,14 @@ impl Image {
             "/var/lib/cromwell/containers/{}",
             &filename.replace(".tar.gz", "")
         );
-        std::fs::create_dir(&container_path).unwrap();
+
+        if Path::new(&container_path).exists() {
+            fs::remove_dir_all(&container_path)?;
+        }
+
+        std::fs::create_dir(&container_path)?;
 
         ar.unpack(&container_path)
-            .expect("Failed to unpack filename");
     }
 
     pub fn pull(&self) -> Result<(), reqwest::Error> {
@@ -74,7 +79,8 @@ impl Image {
                             format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
                         let mut out = File::create(&out_filename).expect("failed to create file");
                         io::copy(&mut res, &mut out).expect("failed to copy content");
-                        self.tar_archive(out_filename);
+                        self.tar_archive(out_filename)
+                            .expect("failed to tar un archive");
                     }
                 }
             }
