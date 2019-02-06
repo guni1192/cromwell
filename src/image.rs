@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io;
+use std::io::{self, Write};
 use std::path::Path;
 
 use flate2::read::GzDecoder;
@@ -7,9 +7,13 @@ use reqwest;
 use serde_json::{self, Value};
 use tar::Archive;
 
+#[warn(unused_imports)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Image {
     name: String,
     tag: String,
+    pub filename: String,
+    path: String,
 }
 
 impl Image {
@@ -21,14 +25,19 @@ impl Image {
         Image {
             name: n[0].to_string(),
             tag: n[1].to_string(),
+            filename: "".to_string(),
+            path: "".to_string(),
         }
     }
 
-    pub fn tar_archive(&self, path: String) -> io::Result<()> {
+    pub fn tar_archive(&mut self, path: String) -> io::Result<()> {
+        println!("[INFO] tar unpack start {}", path);
         let tar_gz = File::open(&path).expect("");
         let tar = GzDecoder::new(tar_gz);
         let mut ar = Archive::new(tar);
         let filename = path.replace("/tmp/", "");
+        println!("[INFO] filename : {}", filename);
+
         let container_path = format!(
             "/var/lib/cromwell/containers/{}",
             &filename.replace(".tar.gz", "")
@@ -38,12 +47,29 @@ impl Image {
             fs::remove_dir_all(&container_path)?;
         }
 
+        println!("[INFO] mkdir {}", container_path);
         std::fs::create_dir(&container_path)?;
 
-        ar.unpack(&container_path)
+        println!("[INFO] unpacking {}", container_path);
+        ar.unpack(&container_path)?;
+        self.path = container_path;
+
+        Ok(())
     }
 
-    pub fn pull(&self) -> Result<(), reqwest::Error> {
+    pub fn put_config_json(&self) -> std::io::Result<()> {
+        let json_str = serde_json::to_string(&self)?;
+        let json_bytes = json_str.as_bytes();
+
+        // let path = format!("/var/lib/cromwell/containers/{}/config.json", self.filename);
+        let container_path = format!("{}/config.json", self.path);
+        let mut file = File::create(container_path)?;
+        file.write_all(json_bytes)?;
+
+        Ok(())
+    }
+
+    pub fn pull(&mut self) -> Result<(), reqwest::Error> {
         let auth_url = format!(
             "https://auth.docker.io/token?service=registry.docker.io&scope=repository:{}:pull",
             self.name
@@ -56,6 +82,7 @@ impl Image {
                 "https://registry.hub.docker.com/v2/{}/manifests/{}",
                 self.name, self.tag
             );
+
             let res = reqwest::Client::new()
                 .get(manifests_url.as_str())
                 .bearer_auth(token)
@@ -63,6 +90,7 @@ impl Image {
                 .text()?;
 
             let body: Value = serde_json::from_str(res.as_str()).expect("parse json failed");
+
             if let Value::Array(fs_layers) = &body["fsLayers"] {
                 for fs_layer in fs_layers {
                     if let Value::String(blob_sum) = &fs_layer["blobSum"] {
@@ -79,8 +107,11 @@ impl Image {
                             format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
                         let mut out = File::create(&out_filename).expect("failed to create file");
                         io::copy(&mut res, &mut out).expect("failed to copy content");
+
                         self.tar_archive(out_filename)
-                            .expect("failed to tar un archive");
+                            .expect("failed to un archive tar.gz");
+
+                        self.put_config_json().expect("failed to put config json");
                     }
                 }
             }

@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate serde_derive;
+
 use std::process::exit;
 
 use clap::{crate_name, crate_version, App, Arg, SubCommand};

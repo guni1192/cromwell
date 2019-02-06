@@ -7,6 +7,7 @@ use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, fork, ForkResult};
 use nix::unistd::{execve, sethostname, Uid};
 
+use super::image::Image;
 use super::mounts;
 
 pub struct Container {
@@ -14,21 +15,30 @@ pub struct Container {
     pub path: String,
     pub command: String,
     pub uid: Uid,
+    pub image: Image,
 }
 
 impl Container {
     pub fn new(name: String, command: String, uid: Uid) -> Container {
-        let path = format!("{}/{}", get_containers_path().unwrap(), name.clone());
+        let mut image = Image::new(name.clone());
+        image.pull().expect("Failed to cromwell pull");
+
+        let path = format!(
+            "{}/{}",
+            get_containers_path().unwrap(),
+            image.filename.clone()
+        );
 
         Container {
             name: name.clone(),
             path,
             command,
             uid,
+            image,
         }
     }
 
-    pub fn prepare(&self) {
+    pub fn prepare(&mut self) {
         println!("Started initialize Container!");
         let c_hosts = format!("{}/etc/hosts", self.path);
         let c_resolv = format!("{}/etc/resolv.conf", self.path);

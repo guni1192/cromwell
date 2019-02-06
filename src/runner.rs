@@ -28,7 +28,7 @@ pub fn run(sub_m: &ArgMatches) {
 
     let uid = getuid();
 
-    let container = container::Container::new(container_name.to_string(), command, uid);
+    let mut container = container::Container::new(container_name.to_string(), command, uid);
 
     if sub_m.is_present("del") {
         container.delete().expect("Faild to remove container: ");
@@ -56,6 +56,6 @@ pub fn pull(sub_m: &ArgMatches) {
         .value_of("image_name")
         .expect("invalied arguments about image name");
 
-    let image = Image::new(image_name.to_string());
+    let mut image = Image::new(image_name.to_string());
     image.pull().expect("Failed to image pull");
 }
