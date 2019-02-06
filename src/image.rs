@@ -77,45 +77,57 @@ impl Image {
         let res_json: String = reqwest::get(auth_url.as_str())?.text()?;
         let body: Value = serde_json::from_str(res_json.as_str()).expect("parse json failed");
 
-        if let Value::String(token) = &body["token"] {
-            let manifests_url = format!(
-                "https://registry.hub.docker.com/v2/{}/manifests/{}",
-                self.name, self.tag
-            );
+        let token = match &body["token"] {
+            Value::String(t) => t,
+            _ => panic!("unexpected data: body[\"token\"]"),
+        };
 
-            let res = reqwest::Client::new()
-                .get(manifests_url.as_str())
-                .bearer_auth(token)
-                .send()?
-                .text()?;
+        let manifests_url = format!(
+            "https://registry.hub.docker.com/v2/{}/manifests/{}",
+            self.name, self.tag
+        );
 
-            let body: Value = serde_json::from_str(res.as_str()).expect("parse json failed");
+        let res = reqwest::Client::new()
+            .get(manifests_url.as_str())
+            .bearer_auth(token)
+            .send()?
+            .text()?;
 
-            if let Value::Array(fs_layers) = &body["fsLayers"] {
+        let body: Value = serde_json::from_str(res.as_str()).expect("parse json failed");
+
+        match &body["fsLayers"] {
+            Value::Array(fs_layers) => {
                 for fs_layer in fs_layers {
-                    if let Value::String(blob_sum) = &fs_layer["blobSum"] {
-                        let url = format!(
-                            "https://registry.hub.docker.com/v2/{}/blobs/{}",
-                            self.name, blob_sum
-                        );
-
-                        let mut res = reqwest::Client::new()
-                            .get(url.as_str())
-                            .bearer_auth(token)
-                            .send()?;
-                        let out_filename =
-                            format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
-                        let mut out = File::create(&out_filename).expect("failed to create file");
-                        io::copy(&mut res, &mut out).expect("failed to copy content");
-
-                        self.tar_archive(out_filename)
-                            .expect("failed to un archive tar.gz");
-
-                        self.put_config_json().expect("failed to put config json");
-                    }
+                    self.download(token.to_string(), fs_layer.clone())
+                        .expect("failed to download image");
                 }
             }
-        };
+            _ => eprintln!("unexpected type fsLayers"),
+        }
+
+        Ok(())
+    }
+
+    fn download(&mut self, token: String, fs_layer: Value) -> Result<(), reqwest::Error> {
+        if let Value::String(blob_sum) = &fs_layer["blobSum"] {
+            let url = format!(
+                "https://registry.hub.docker.com/v2/{}/blobs/{}",
+                self.name, blob_sum
+            );
+
+            let mut res = reqwest::Client::new()
+                .get(url.as_str())
+                .bearer_auth(token)
+                .send()?;
+            let out_filename = format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
+            let mut out = File::create(&out_filename).expect("failed to create file");
+            io::copy(&mut res, &mut out).expect("failed to copy content");
+
+            self.tar_archive(out_filename)
+                .expect("failed to un archive tar.gz");
+
+            self.put_config_json().expect("failed to put config json");
+        }
 
         Ok(())
     }
