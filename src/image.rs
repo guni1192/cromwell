@@ -84,16 +84,21 @@ impl Image {
     }
 }
 
-#[test]
-fn test_init_image() {
-    let image = Image::new("library/alpine".to_string());
-    assert_eq!(image.name, "library/alpine".to_string());
-    assert_eq!(image.tag, "latest".to_string());
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_init_image_spec_tag() {
-    let image = Image::new("library/alpine:3.8".to_string());
-    assert_eq!(image.name, "library/alpine".to_string());
-    assert_eq!(image.tag, "3.8".to_string());
+    #[test]
+    fn test_init_image() {
+        let image = Image::new("library/alpine".to_string());
+        assert_eq!(image.name, "library/alpine".to_string());
+        assert_eq!(image.tag, "latest".to_string());
+    }
+
+    #[test]
+    fn test_init_image_spec_tag() {
+        let image = Image::new("library/alpine:3.8".to_string());
+        assert_eq!(image.name, "library/alpine".to_string());
+        assert_eq!(image.tag, "3.8".to_string());
+    }
 }
