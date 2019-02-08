@@ -1,53 +1,42 @@
-use std::env;
 use std::ffi::CString;
 use std::fs;
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, fork, ForkResult};
-use nix::unistd::{execve, sethostname, Uid};
+use nix::unistd::{execve, sethostname};
 
 use super::image::Image;
 use super::mounts;
 
 pub struct Container {
     pub name: String,
-    pub path: String,
     pub command: String,
-    pub uid: Uid,
     pub image: Image,
 }
 
 impl Container {
-    pub fn new(name: String, command: String, uid: Uid) -> Container {
+    pub fn new(name: String, command: String) -> Container {
         let mut image = Image::new(name.clone());
         image.pull().expect("Failed to cromwell pull");
 
-        let path = format!(
-            "{}/{}",
-            get_containers_path().unwrap(),
-            image.filename.clone()
-        );
-
         Container {
             name: name.clone(),
-            path,
             command,
-            uid,
             image,
         }
     }
 
     pub fn prepare(&mut self) {
         println!("Started initialize Container!");
-        let c_hosts = format!("{}/etc/hosts", self.path);
-        let c_resolv = format!("{}/etc/resolv.conf", self.path);
+        let c_hosts = format!("{}/etc/hosts", self.image.path);
+        let c_resolv = format!("{}/etc/resolv.conf", self.image.path);
 
-        println!("Copying /etc/hosts to {}", c_hosts);
-        println!("Copying /etc/resolv.conf {}", c_resolv);
+        println!("[INFO] Copying /etc/hosts to {}", c_hosts);
+        println!("[INFO] Copying /etc/resolv.conf {}", c_resolv);
 
-        fs::copy("/etc/hosts", c_hosts).expect("Failed copy file: ");
-        fs::copy("/etc/resolv.conf", c_resolv).expect("Failed copy file: ");
+        fs::copy("/etc/hosts", c_hosts).expect("Failed copy /etc/hosts: ");
+        fs::copy("/etc/resolv.conf", c_resolv).expect("Failed copy /etc/resolv.conf: ");
 
         unshare(
             CloneFlags::CLONE_NEWPID
@@ -57,14 +46,14 @@ impl Container {
         )
         .expect("Can not unshare(2).");
 
-        chroot(self.path.as_str()).expect("chroot failed.");
+        chroot(self.image.path.as_str()).expect("chroot failed.");
         chdir("/").expect("cd / failed.");
     }
 
     pub fn run(&self) {
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
-                println!("container pid: {}", child);
+                println!("[INFO] container pid: {}", child);
 
                 match waitpid(child, None).expect("waitpid faild") {
                     WaitStatus::Exited(_, _) => {}
@@ -79,7 +68,7 @@ impl Container {
                     eprintln!("{:?}", why.kind());
                 });
 
-                println!("Mount procfs ... ");
+                println!("[INFO] Mount procfs ... ");
                 mounts::mount_proc().expect("mount procfs failed");
 
                 let cmd = CString::new(self.command.clone()).unwrap();
@@ -95,25 +84,11 @@ impl Container {
                 )
                 .expect("execution faild.");
             }
-            Err(_) => eprintln!("Fork failed"),
+            Err(_) => eprintln!("[ERROR] Fork failed"),
         }
     }
 
     pub fn delete(&self) -> std::io::Result<()> {
-        fs::remove_dir_all(&self.path)
+        fs::remove_dir_all(&self.image.path)
     }
-}
-
-pub fn get_containers_path() -> Result<String, env::VarError> {
-    let ace_container_env = "ACE_CONTAINER_PATH";
-    env::var(ace_container_env)
-}
-
-#[test]
-fn test_get_container_path() {
-    let ace_container_env = "ACE_CONTAINER_PATH";
-    let ace_container_path = "/var/lib/ace-containers";
-    env::set_var(ace_container_env, ace_container_path);
-
-    assert_eq!(ace_container_path, get_containers_path().unwrap())
 }

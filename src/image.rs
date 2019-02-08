@@ -13,7 +13,7 @@ pub struct Image {
     name: String,
     tag: String,
     pub filename: String,
-    path: String,
+    pub path: String,
 }
 
 impl Image {
@@ -57,11 +57,12 @@ impl Image {
         Ok(())
     }
 
+
+
     pub fn put_config_json(&self) -> std::io::Result<()> {
         let json_str = serde_json::to_string(&self)?;
         let json_bytes = json_str.as_bytes();
 
-        // let path = format!("/var/lib/cromwell/containers/{}/config.json", self.filename);
         let container_path = format!("{}/config.json", self.path);
         let mut file = File::create(container_path)?;
         file.write_all(json_bytes)?;
@@ -98,8 +99,7 @@ impl Image {
         match &body["fsLayers"] {
             Value::Array(fs_layers) => {
                 for fs_layer in fs_layers {
-                    self.download(token.to_string(), fs_layer.clone())
-                        .expect("failed to download image");
+                    self.download(token.to_string(), fs_layer.clone()).expect("failed to download")
                 }
             }
             _ => eprintln!("unexpected type fsLayers"),

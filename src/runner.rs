@@ -1,10 +1,7 @@
 use std::env;
-use std::process;
 
 use clap::ArgMatches;
-use nix::unistd::getuid;
 
-// use super::bootstrap::pacstrap;
 use super::container;
 use super::image::Image;
 
@@ -23,28 +20,11 @@ pub fn run(sub_m: &ArgMatches) {
         .value_of("container_name")
         .expect("invalied arguments about container name");
 
-    let pid = process::id();
-    println!("pid: {}", pid);
-
-    let uid = getuid();
-
-    let mut container = container::Container::new(container_name.to_string(), command, uid);
+    let mut container = container::Container::new(container_name.to_string(), command);
 
     if sub_m.is_present("del") {
         container.delete().expect("Faild to remove container: ");
     }
-
-    // TODO: pull rootfs docker image by DockerHub
-    // bootstraping
-    // if !Path::new(&container.path).exists() {
-    //     println!(
-    //         "Creating container bootstrap to {} ...",
-    //         container.path.as_str()
-    //     );
-    //     fs::create_dir_all(container.path.as_str())
-    //         .expect("Could not create directory to your path");
-    //     pacstrap(container.path_str());
-    // }
 
     container.prepare();
 
