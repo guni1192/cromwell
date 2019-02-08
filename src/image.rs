@@ -57,8 +57,6 @@ impl Image {
         Ok(())
     }
 
-
-
     pub fn put_config_json(&self) -> std::io::Result<()> {
         let json_str = serde_json::to_string(&self)?;
         let json_bytes = json_str.as_bytes();
@@ -99,7 +97,8 @@ impl Image {
         match &body["fsLayers"] {
             Value::Array(fs_layers) => {
                 for fs_layer in fs_layers {
-                    self.download(token.to_string(), fs_layer.clone()).expect("failed to download")
+                    self.download(token.to_string(), fs_layer.clone())
+                        .expect("failed to download")
                 }
             }
             _ => eprintln!("unexpected type fsLayers"),

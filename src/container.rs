@@ -17,17 +17,16 @@ pub struct Container {
 
 impl Container {
     pub fn new(name: String, command: String) -> Container {
-        let mut image = Image::new(name.clone());
-        image.pull().expect("Failed to cromwell pull");
-
         Container {
             name: name.clone(),
             command,
-            image,
+            image: Image::new(name.clone()),
         }
     }
 
     pub fn prepare(&mut self) {
+        self.image.pull().expect("Failed to cromwell pull");
+
         println!("Started initialize Container!");
         let c_hosts = format!("{}/etc/hosts", self.image.path);
         let c_resolv = format!("{}/etc/resolv.conf", self.image.path);
@@ -90,5 +89,18 @@ impl Container {
 
     pub fn delete(&self) -> std::io::Result<()> {
         fs::remove_dir_all(&self.image.path)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_init_container() {
+        let image_name = String::from("library/alpine:3.8");
+        let command = "/bin/bash".to_string();
+        let container = Container::new(image_name, command.clone());
+        assert_eq!(container.command, command);
     }
 }

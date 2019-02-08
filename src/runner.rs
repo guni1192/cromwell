@@ -1,5 +1,3 @@
-use std::env;
-
 use clap::ArgMatches;
 
 use super::container;
@@ -7,10 +5,6 @@ use super::image::Image;
 
 // TODO: deamonize option
 pub fn run(sub_m: &ArgMatches) {
-    let ace_container_path_env = "ACE_CONTAINER_PATH";
-    let ace_path = "/var/lib/cromwell/containers";
-    env::set_var(ace_container_path_env, ace_path);
-
     let command = match sub_m.value_of("exec_command") {
         Some(c) => c.to_string(),
         None => "/bin/sh".to_string(),
