@@ -18,8 +18,6 @@ Enable user namespaces
 $ sudo sysctl kernel.unprivileged_userns_clone=1
 ```
 
-
-
 ## Installation
 
 ```
@@ -51,6 +49,8 @@ SUBCOMMANDS:
     run     run cromwell container
 ```
 
+### Run Container
+
 ```bash
 $ cromwell run -n <CONTAINER_NAME> --exec /bin/bash
 [root@<CONTAINER_NAME> /]# 
@@ -59,6 +59,12 @@ $ cromwell run -n <CONTAINER_NAME> --exec /bin/bash
 ```bash
 $ cromwell run -n <CONTAINER_NAME> --exec 'ls -al'
 bin  boot  dev  etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+```
+
+### Pull Image from DockerHub
+
+```
+$ cromwell pull -n library/alpine:latest
 ```
 
 ## Test

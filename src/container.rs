@@ -1,43 +1,41 @@
-use std::env;
 use std::ffi::CString;
 use std::fs;
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, fork, ForkResult};
-use nix::unistd::{execve, sethostname, Uid};
+use nix::unistd::{execve, sethostname};
 
+use super::image::Image;
 use super::mounts;
 
 pub struct Container {
     pub name: String,
-    pub path: String,
     pub command: String,
-    pub uid: Uid,
+    pub image: Image,
 }
 
 impl Container {
-    pub fn new(name: String, command: String, uid: Uid) -> Container {
-        let path = format!("{}/{}", get_containers_path().unwrap(), name.clone());
-
+    pub fn new(name: &str, command: String) -> Container {
         Container {
-            name: name.clone(),
-            path,
+            name: name.to_string(),
             command,
-            uid,
+            image: Image::new(name),
         }
     }
 
-    pub fn prepare(&self) {
+    pub fn prepare(&mut self) {
+        self.image.pull().expect("Failed to cromwell pull");
+
         println!("Started initialize Container!");
-        let c_hosts = format!("{}/etc/hosts", self.path);
-        let c_resolv = format!("{}/etc/resolv.conf", self.path);
+        let c_hosts = format!("{}/etc/hosts", self.image.get_full_path());
+        let c_resolv = format!("{}/etc/resolv.conf", self.image.get_full_path());
 
-        println!("Copying /etc/hosts to {}", c_hosts);
-        println!("Copying /etc/resolv.conf {}", c_resolv);
+        println!("[INFO] Copying /etc/hosts to {}", c_hosts);
+        println!("[INFO] Copying /etc/resolv.conf {}", c_resolv);
 
-        fs::copy("/etc/hosts", c_hosts).expect("Failed copy file: ");
-        fs::copy("/etc/resolv.conf", c_resolv).expect("Failed copy file: ");
+        fs::copy("/etc/hosts", c_hosts).expect("Failed copy /etc/hosts: ");
+        fs::copy("/etc/resolv.conf", c_resolv).expect("Failed copy /etc/resolv.conf: ");
 
         unshare(
             CloneFlags::CLONE_NEWPID
@@ -47,14 +45,14 @@ impl Container {
         )
         .expect("Can not unshare(2).");
 
-        chroot(self.path.as_str()).expect("chroot failed.");
+        chroot(self.image.get_full_path().as_str()).expect("chroot failed.");
         chdir("/").expect("cd / failed.");
     }
 
     pub fn run(&self) {
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
-                println!("container pid: {}", child);
+                println!("[INFO] container pid: {}", child);
 
                 match waitpid(child, None).expect("waitpid faild") {
                     WaitStatus::Exited(_, _) => {}
@@ -69,7 +67,7 @@ impl Container {
                     eprintln!("{:?}", why.kind());
                 });
 
-                println!("Mount procfs ... ");
+                println!("[INFO] Mount procfs ... ");
                 mounts::mount_proc().expect("mount procfs failed");
 
                 let cmd = CString::new(self.command.clone()).unwrap();
@@ -85,25 +83,24 @@ impl Container {
                 )
                 .expect("execution faild.");
             }
-            Err(_) => eprintln!("Fork failed"),
+            Err(_) => eprintln!("[ERROR] Fork failed"),
         }
     }
 
     pub fn delete(&self) -> std::io::Result<()> {
-        fs::remove_dir_all(&self.path)
+        fs::remove_dir_all(&self.image.get_full_path())
     }
 }
 
-pub fn get_containers_path() -> Result<String, env::VarError> {
-    let ace_container_env = "ACE_CONTAINER_PATH";
-    env::var(ace_container_env)
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_get_container_path() {
-    let ace_container_env = "ACE_CONTAINER_PATH";
-    let ace_container_path = "/var/lib/ace-containers";
-    env::set_var(ace_container_env, ace_container_path);
-
-    assert_eq!(ace_container_path, get_containers_path().unwrap())
+    #[test]
+    fn test_init_container() {
+        let image_name = "library/alpine:3.8";
+        let command = "/bin/bash".to_string();
+        let container = Container::new(image_name, command.clone());
+        assert_eq!(container.command, command);
+    }
 }
