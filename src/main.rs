@@ -7,6 +7,7 @@ use clap::{crate_name, crate_version, App, Arg, SubCommand};
 
 mod bootstrap;
 mod commands;
+mod config;
 mod container;
 mod image;
 mod mounts;

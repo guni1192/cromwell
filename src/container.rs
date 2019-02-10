@@ -28,8 +28,8 @@ impl Container {
         self.image.pull().expect("Failed to cromwell pull");
 
         println!("Started initialize Container!");
-        let c_hosts = format!("{}/etc/hosts", self.image.path);
-        let c_resolv = format!("{}/etc/resolv.conf", self.image.path);
+        let c_hosts = format!("{}/etc/hosts", self.image.get_full_path());
+        let c_resolv = format!("{}/etc/resolv.conf", self.image.get_full_path());
 
         println!("[INFO] Copying /etc/hosts to {}", c_hosts);
         println!("[INFO] Copying /etc/resolv.conf {}", c_resolv);
@@ -45,7 +45,7 @@ impl Container {
         )
         .expect("Can not unshare(2).");
 
-        chroot(self.image.path.as_str()).expect("chroot failed.");
+        chroot(self.image.get_full_path().as_str()).expect("chroot failed.");
         chdir("/").expect("cd / failed.");
     }
 
@@ -88,7 +88,7 @@ impl Container {
     }
 
     pub fn delete(&self) -> std::io::Result<()> {
-        fs::remove_dir_all(&self.image.path)
+        fs::remove_dir_all(&self.image.get_full_path())
     }
 }
 

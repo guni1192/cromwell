@@ -7,13 +7,15 @@ use reqwest;
 use serde_json::{self, Value};
 use tar::Archive;
 
+use super::config::Config;
+
 #[warn(unused_imports)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Image {
+    pub id: String,
     name: String,
     tag: String,
-    pub filename: String,
-    pub path: String,
+    pub config: Config,
 }
 
 impl Image {
@@ -25,9 +27,13 @@ impl Image {
         Image {
             name: n[0].to_string(),
             tag: n[1].to_string(),
-            filename: "".to_string(),
-            path: "".to_string(),
+            id: "".to_string(),
+            config: Config::new(),
         }
+    }
+
+    pub fn get_full_path(&self) -> String {
+        format!("{}/{}", self.config.image_path, self.id)
     }
 
     pub fn tar_archive(&mut self, path: String) -> io::Result<()> {
@@ -35,24 +41,19 @@ impl Image {
         let tar_gz = File::open(&path).expect("");
         let tar = GzDecoder::new(tar_gz);
         let mut ar = Archive::new(tar);
-        let filename = path.replace("/tmp/", "");
-        println!("[INFO] filename : {}", filename);
 
-        let container_path = format!(
-            "/var/lib/cromwell/containers/{}",
-            &filename.replace(".tar.gz", "")
-        );
+        self.id = path.replace("/tmp/", "").replace(".tar.gz", "");
+        let image_path = format!("{}/{}", self.config.image_path, self.id);
 
-        if Path::new(&container_path).exists() {
-            fs::remove_dir_all(&container_path)?;
+        if Path::new(&image_path).exists() {
+            fs::remove_dir_all(&image_path)?;
         }
 
-        println!("[INFO] mkdir {}", container_path);
-        std::fs::create_dir(&container_path)?;
+        println!("[INFO] mkdir {}", image_path);
+        std::fs::create_dir(&image_path)?;
 
-        println!("[INFO] unpacking {}", container_path);
-        ar.unpack(&container_path)?;
-        self.path = container_path;
+        println!("[INFO] unpacking {}", image_path);
+        ar.unpack(&image_path)?;
 
         Ok(())
     }
@@ -61,8 +62,8 @@ impl Image {
         let json_str = serde_json::to_string(&self)?;
         let json_bytes = json_str.as_bytes();
 
-        let container_path = format!("{}/config.json", self.path);
-        let mut file = File::create(container_path)?;
+        let image_path = format!("{}/{}/config.json", self.config.image_path, self.id);
+        let mut file = File::create(image_path)?;
         file.write_all(json_bytes)?;
 
         Ok(())
