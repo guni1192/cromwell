@@ -16,11 +16,11 @@ pub struct Container {
 }
 
 impl Container {
-    pub fn new(name: String, command: String) -> Container {
+    pub fn new(name: &str, command: String) -> Container {
         Container {
-            name: name.clone(),
+            name: name.to_string(),
             command,
-            image: Image::new(name.clone()),
+            image: Image::new(name),
         }
     }
 
@@ -98,7 +98,7 @@ mod tests {
 
     #[test]
     fn test_init_container() {
-        let image_name = String::from("library/alpine:3.8");
+        let image_name = "library/alpine:3.8";
         let command = "/bin/bash".to_string();
         let container = Container::new(image_name, command.clone());
         assert_eq!(container.command, command);

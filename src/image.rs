@@ -19,7 +19,7 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn new(name_and_tag: String) -> Image {
+    pub fn new(name_and_tag: &str) -> Image {
         let mut n: Vec<&str> = name_and_tag.split(':').collect();
         if n.len() < 2 {
             n.push("latest");
@@ -36,7 +36,7 @@ impl Image {
         format!("{}/{}", self.config.image_path, self.id)
     }
 
-    pub fn tar_archive(&mut self, path: String) -> io::Result<()> {
+    pub fn tar_archive(&mut self, path: &str) -> io::Result<()> {
         println!("[INFO] tar unpack start {}", path);
         let tar_gz = File::open(&path).expect("");
         let tar = GzDecoder::new(tar_gz);
@@ -98,7 +98,7 @@ impl Image {
         match &body["fsLayers"] {
             Value::Array(fs_layers) => {
                 for fs_layer in fs_layers {
-                    self.download(token.to_string(), fs_layer.clone())
+                    self.download(token.to_string(), &fs_layer)
                         .expect("failed to download")
                 }
             }
@@ -108,7 +108,7 @@ impl Image {
         Ok(())
     }
 
-    fn download(&mut self, token: String, fs_layer: Value) -> Result<(), reqwest::Error> {
+    fn download(&mut self, token: String, fs_layer: &Value) -> Result<(), reqwest::Error> {
         if let Value::String(blob_sum) = &fs_layer["blobSum"] {
             let url = format!(
                 "https://registry.hub.docker.com/v2/{}/blobs/{}",
@@ -123,7 +123,7 @@ impl Image {
             let mut out = File::create(&out_filename).expect("failed to create file");
             io::copy(&mut res, &mut out).expect("failed to copy content");
 
-            self.tar_archive(out_filename)
+            self.tar_archive(out_filename.as_str())
                 .expect("failed to un archive tar.gz");
 
             self.put_config_json().expect("failed to put config json");
@@ -139,14 +139,14 @@ mod tests {
 
     #[test]
     fn test_init_image() {
-        let image = Image::new("library/alpine".to_string());
+        let image = Image::new("library/alpine");
         assert_eq!(image.name, "library/alpine".to_string());
         assert_eq!(image.tag, "latest".to_string());
     }
 
     #[test]
     fn test_init_image_spec_tag() {
-        let image = Image::new("library/alpine:3.8".to_string());
+        let image = Image::new("library/alpine:3.8");
         assert_eq!(image.name, "library/alpine".to_string());
         assert_eq!(image.tag, "3.8".to_string());
     }
