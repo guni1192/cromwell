@@ -1,5 +1,6 @@
 # Cromwell
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/41323aa3cce44cd586d683bdb62f6812)](https://app.codacy.com/app/guni1192/cromwell?utm_source=github.com&utm_medium=referral&utm_content=guni1192/cromwell&utm_campaign=Badge_Grade_Settings)
 [![CircleCI](https://circleci.com/gh/guni1192/cromwell/tree/master.svg?style=svg)](https://circleci.com/gh/guni1192/cromwell/tree/master)
 ![crates.io](https://img.shields.io/crates/v/cromwell.svg)
 ![docs](https://docs.rs/cromwell/badge.svg)
