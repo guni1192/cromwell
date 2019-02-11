@@ -9,7 +9,6 @@ Rust Rootless Container Runntime
 
 ![logo](./logos/facebook_cover_photo_2.png)
 
-
 ## Dependency
 
 Enable user namespaces
@@ -33,8 +32,6 @@ $ cargo install --git https://github.com/guni1192/cromwell
 ## Usage
 
 ```
-cromwell 0.1.1
-Takashi IIGUNI <ad2314ce71926@gmail.com>
 Rust Rootless Container Runntime
 
 USAGE:
@@ -46,35 +43,32 @@ FLAGS:
 
 SUBCOMMANDS:
     help    Prints this message or the help of the given subcommand(s)
+    pull    pull oci image
     run     run cromwell container
 ```
+
+## Example
 
 ### Run Container
 
 ```bash
-$ cromwell run -n <CONTAINER_NAME> --exec /bin/bash
-[root@<CONTAINER_NAME> /]# 
+$ cromwell run -n library/alpine:3.8
+~ $
 ```
 
 ```bash
-$ cromwell run -n <CONTAINER_NAME> --exec 'ls -al'
+$ cromwell run -n library/alpine:3.8 --exec 'ls -a'
 bin  boot  dev  etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
 ```
 
 ### Pull Image from DockerHub
 
 ```
-$ cromwell pull -n library/alpine:latest
+$ cromwell pull -n library/alpine:3.8
 ```
 
 ## Test
 
 ```
 $ cargo test
-```
-
-## Build
-
-```
-$ cargo make --makefile release.toml workflow
 ```
