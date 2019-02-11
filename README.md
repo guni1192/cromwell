@@ -9,7 +9,6 @@ Rust Rootless Container Runntime
 
 ![logo](./logos/facebook_cover_photo_2.png)
 
-
 ## Dependency
 
 Enable user namespaces
@@ -54,11 +53,11 @@ SUBCOMMANDS:
 
 ```bash
 $ cromwell run -n library/alpine:3.8
-[root@<CONTAINER_NAME> /]# 
+~ $
 ```
 
 ```bash
-$ cromwell run -n library/alpine:3.8 --exec 'ls -al'
+$ cromwell run -n library/alpine:3.8 --exec 'ls -a'
 bin  boot  dev  etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
 ```
 
