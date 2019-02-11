@@ -38,9 +38,6 @@ mod tests {
         let home = home_dir().unwrap();
         let home = home.to_str().expect("Could not PathBuf to str");
 
-        assert_eq!(
-            config.image_path,
-            format!("{}/.cromwell/containers", home)
-        )
+        assert_eq!(config.image_path, format!("{}/.cromwell/containers", home))
     }
 }
