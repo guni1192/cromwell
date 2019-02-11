@@ -28,7 +28,7 @@ impl Image {
             name: n[0].to_string(),
             tag: n[1].to_string(),
             id: "".to_string(),
-            config: Config::new(),
+            config: Config::new(None),
         }
     }
 
