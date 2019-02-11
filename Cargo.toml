@@ -1,6 +1,6 @@
 [package]
 name = "cromwell"
-version = "0.1.3-alpha.0"
+version = "0.1.3"
 authors = ["Takashi IIGUNI <ad2314ce71926@gmail.com>"]
 description = "Rust Rootless Container Runtime"
 license = "MIT"
