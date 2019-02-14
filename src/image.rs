@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io::{self, Write};
+use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
 use flate2::read::GzDecoder;
@@ -53,9 +53,11 @@ impl Image {
         std::fs::create_dir(&image_path)?;
 
         println!("[INFO] unpacking {}", image_path);
-        ar.unpack(&image_path)?;
 
-        Ok(())
+        match ar.unpack(&image_path) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e),
+        }
     }
 
     pub fn put_config_json(&self) -> std::io::Result<()> {
@@ -98,8 +100,10 @@ impl Image {
         match &body["fsLayers"] {
             Value::Array(fs_layers) => {
                 for fs_layer in fs_layers {
-                    self.download(token.to_string(), &fs_layer)
-                        .expect("failed to download")
+                    match self.download(token.to_string(), &fs_layer) {
+                        Ok(_) => println!("[INFO] image download successed"),
+                        Err(e) => eprintln!("[ERROR] {}", e),
+                    }
                 }
             }
             _ => eprintln!("unexpected type fsLayers"),
@@ -114,7 +118,7 @@ impl Image {
         Ok(())
     }
 
-    fn download(&mut self, token: String, fs_layer: &Value) -> Result<(), reqwest::Error> {
+    fn download(&mut self, token: String, fs_layer: &Value) -> std::io::Result<()> {
         if let Value::String(blob_sum) = &fs_layer["blobSum"] {
             let out_filename = format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
 
@@ -124,8 +128,7 @@ impl Image {
                 .replace(".tar.gz", "");
 
             if Path::new(out_filename.as_str()).exists() {
-                self.create_container_dir()
-                    .expect("could not create container dir");
+                self.create_container_dir()?;
                 return Ok(());
             }
 
@@ -137,15 +140,18 @@ impl Image {
             let mut res = reqwest::Client::new()
                 .get(url.as_str())
                 .bearer_auth(token)
-                .send()?;
-            let mut out = File::create(&out_filename).expect("failed to create file");
-            io::copy(&mut res, &mut out).expect("failed to copy content");
+                .send()
+                .expect("failed to send requwest");
+            let mut out = File::create(&out_filename)?;
+            io::copy(&mut res, &mut out)?;
+            return self.create_container_dir();
 
-            self.create_container_dir()
-                .expect("could not create container dir")
+            // return Ok(());
         }
-
-        Ok(())
+        Err(Error::new(
+            ErrorKind::Other,
+            "blobSum not found from fsLayer",
+        ))
     }
 }
 
