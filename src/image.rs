@@ -3,6 +3,7 @@ use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
 use flate2::read::GzDecoder;
+use log::{error, info};
 use reqwest;
 use serde_json::{self, Value};
 use tar::Archive;
@@ -101,8 +102,8 @@ impl Image {
             Value::Array(fs_layers) => {
                 for fs_layer in fs_layers {
                     match self.download(token.to_string(), &fs_layer) {
-                        Ok(_) => info!("[INFO] image download successed"),
-                        Err(e) => error!("[ERROR] {}", e),
+                        Ok(_) => info!("image download successed"),
+                        Err(e) => error!("{}", e),
                     }
                 }
             }

@@ -6,6 +6,8 @@ use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, fork, ForkResult};
 use nix::unistd::{execve, sethostname};
 
+use log::{error, info};
+
 use super::image::Image;
 use super::mounts;
 
