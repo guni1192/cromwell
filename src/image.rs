@@ -108,8 +108,27 @@ impl Image {
         Ok(())
     }
 
+    fn create_container_dir(&mut self) -> io::Result<()> {
+        self.tar_archive(&format!("/tmp/{}.tar.gz", self.id))?;
+        self.put_config_json()?;
+        Ok(())
+    }
+
     fn download(&mut self, token: String, fs_layer: &Value) -> Result<(), reqwest::Error> {
         if let Value::String(blob_sum) = &fs_layer["blobSum"] {
+            let out_filename = format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
+
+            self.id = out_filename
+                .as_str()
+                .replace("/tmp/", "")
+                .replace(".tar.gz", "");
+
+            if Path::new(out_filename.as_str()).exists() {
+                self.create_container_dir()
+                    .expect("could not create container dir");
+                return Ok(());
+            }
+
             let url = format!(
                 "https://registry.hub.docker.com/v2/{}/blobs/{}",
                 self.name, blob_sum
@@ -119,14 +138,11 @@ impl Image {
                 .get(url.as_str())
                 .bearer_auth(token)
                 .send()?;
-            let out_filename = format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
             let mut out = File::create(&out_filename).expect("failed to create file");
             io::copy(&mut res, &mut out).expect("failed to copy content");
 
-            self.tar_archive(out_filename.as_str())
-                .expect("failed to un archive tar.gz");
-
-            self.put_config_json().expect("failed to put config json");
+            self.create_container_dir()
+                .expect("could not create container dir")
         }
 
         Ok(())
