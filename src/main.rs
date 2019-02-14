@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
+extern crate env_logger;
 
 use std::process::exit;
 
@@ -15,6 +16,8 @@ mod network;
 mod runner;
 
 fn main() {
+    env_logger::init();
+
     let mut app = App::new(crate_name!())
         .version(crate_version!())
         .author("Takashi IIGUNI <ad2314ce71926@gmail.com>")

@@ -3,6 +3,7 @@ use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
 use flate2::read::GzDecoder;
+use log::{error, info};
 use reqwest;
 use serde_json::{self, Value};
 use tar::Archive;
@@ -37,7 +38,7 @@ impl Image {
     }
 
     pub fn tar_archive(&mut self, path: &str) -> io::Result<()> {
-        println!("[INFO] tar unpack start {}", path);
+        info!("tar unpack start {}", path);
         let tar_gz = File::open(&path).expect("");
         let tar = GzDecoder::new(tar_gz);
         let mut ar = Archive::new(tar);
@@ -49,10 +50,10 @@ impl Image {
             fs::remove_dir_all(&image_path)?;
         }
 
-        println!("[INFO] mkdir {}", image_path);
+        info!("mkdir {}", image_path);
         std::fs::create_dir(&image_path)?;
 
-        println!("[INFO] unpacking {}", image_path);
+        info!("unpacking {}", image_path);
 
         match ar.unpack(&image_path) {
             Ok(_) => Ok(()),
@@ -101,8 +102,8 @@ impl Image {
             Value::Array(fs_layers) => {
                 for fs_layer in fs_layers {
                     match self.download(token.to_string(), &fs_layer) {
-                        Ok(_) => println!("[INFO] image download successed"),
-                        Err(e) => eprintln!("[ERROR] {}", e),
+                        Ok(_) => info!("image download successed"),
+                        Err(e) => error!("{}", e),
                     }
                 }
             }

@@ -6,6 +6,8 @@ use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, fork, ForkResult};
 use nix::unistd::{execve, sethostname};
 
+use log::{error, info};
+
 use super::image::Image;
 use super::mounts;
 
@@ -27,12 +29,12 @@ impl Container {
     pub fn prepare(&mut self) {
         self.image.pull().expect("Failed to cromwell pull");
 
-        println!("Started initialize Container!");
+        info!("Started initialize Container!");
         let c_hosts = format!("{}/etc/hosts", self.image.get_full_path());
         let c_resolv = format!("{}/etc/resolv.conf", self.image.get_full_path());
 
-        println!("[INFO] Copying /etc/hosts to {}", c_hosts);
-        println!("[INFO] Copying /etc/resolv.conf {}", c_resolv);
+        info!("Copying /etc/hosts to {}", c_hosts);
+        info!("Copying /etc/resolv.conf {}", c_resolv);
 
         fs::copy("/etc/hosts", c_hosts).expect("Failed copy /etc/hosts: ");
         fs::copy("/etc/resolv.conf", c_resolv).expect("Failed copy /etc/resolv.conf: ");
@@ -52,7 +54,7 @@ impl Container {
     pub fn run(&self) {
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
-                println!("[INFO] container pid: {}", child);
+                info!("container pid: {}", child);
 
                 match waitpid(child, None).expect("waitpid faild") {
                     WaitStatus::Exited(_, _) => {}
@@ -67,7 +69,7 @@ impl Container {
                     eprintln!("{:?}", why.kind());
                 });
 
-                println!("[INFO] Mount procfs ... ");
+                info!("Mount procfs ... ");
                 mounts::mount_proc().expect("mount procfs failed");
 
                 let cmd = CString::new(self.command.clone()).unwrap();
@@ -83,7 +85,7 @@ impl Container {
                 )
                 .expect("execution faild.");
             }
-            Err(_) => eprintln!("[ERROR] Fork failed"),
+            Err(_) => error!("Fork failed"),
         }
     }
 
