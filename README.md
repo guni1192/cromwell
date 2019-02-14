@@ -4,6 +4,7 @@
 ![crates.io](https://img.shields.io/crates/v/cromwell.svg)
 ![docs](https://docs.rs/cromwell/badge.svg)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/41323aa3cce44cd586d683bdb62f6812)](https://app.codacy.com/app/guni1192/cromwell?utm_source=github.com&utm_medium=referral&utm_content=guni1192/cromwell&utm_campaign=Badge_Grade_Settings)
 
 Rust Rootless Container Runntime
 
@@ -63,12 +64,12 @@ bin  boot  dev  etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  srv  sys
 
 ### Pull Image from DockerHub
 
-```
+```bash
 $ cromwell pull -n library/alpine:3.8
 ```
 
 ## Test
 
-```
+```bash
 $ cargo test
 ```
