@@ -1,9 +1,10 @@
 use std::ffi::CString;
-use std::fs;
+use std::fs::{self, File};
+use std::io::prelude::*;
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, fork, ForkResult};
+use nix::unistd::{chdir, chroot, fork, getpid, getuid, ForkResult, Uid};
 use nix::unistd::{execve, sethostname};
 
 use log::{error, info};
@@ -15,6 +16,7 @@ pub struct Container {
     pub name: String,
     pub command: String,
     pub image: Image,
+    pub host_uid: Uid,
 }
 
 impl Container {
@@ -23,21 +25,37 @@ impl Container {
             name: name.to_string(),
             command,
             image: Image::new(name),
+            host_uid: getuid(),
         }
+    }
+
+    fn uid_map(&self) -> std::io::Result<()> {
+        let mut file = File::create("/proc/self/uid_map")?;
+
+        let uid_map = format!("0 {} 1", self.host_uid);
+
+        file.write_all(b"0 1000 1")?;
+        info!("[Host] wrote {} /proc/self/uid_map", uid_map);
+        Ok(())
+    }
+
+    fn guid_map(&self) -> std::io::Result<()> {
+        self.uid_map().expect("Failed write uid_map");
+        // self.gid_map().expect("Failed write gid_map");
+        Ok(())
     }
 
     pub fn prepare(&mut self) {
         self.image.pull().expect("Failed to cromwell pull");
 
-        info!("Started initialize Container!");
         let c_hosts = format!("{}/etc/hosts", self.image.get_full_path());
         let c_resolv = format!("{}/etc/resolv.conf", self.image.get_full_path());
 
-        info!("Copying /etc/hosts to {}", c_hosts);
-        info!("Copying /etc/resolv.conf {}", c_resolv);
+        fs::copy("/etc/hosts", &c_hosts).expect("Failed copy /etc/hosts");
+        info!("[Host] Copied /etc/hosts to {}", c_hosts);
 
-        fs::copy("/etc/hosts", c_hosts).expect("Failed copy /etc/hosts: ");
-        fs::copy("/etc/resolv.conf", c_resolv).expect("Failed copy /etc/resolv.conf: ");
+        fs::copy("/etc/resolv.conf", &c_resolv).expect("Failed copy /etc/resolv.conf");
+        info!("[Host] Copied /etc/resolv.conf {}", c_resolv);
 
         unshare(
             CloneFlags::CLONE_NEWPID
@@ -47,14 +65,20 @@ impl Container {
         )
         .expect("Can not unshare(2).");
 
+        self.guid_map()
+            .expect("Failed to write /proc/self/gid_map|uid_map");
+
         chroot(self.image.get_full_path().as_str()).expect("chroot failed.");
         chdir("/").expect("cd / failed.");
+
+        sethostname(&self.name).expect("Could not set hostname");
     }
 
     pub fn run(&self) {
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
-                info!("container pid: {}", child);
+                info!("[HOST] PID: {}", getpid());
+                info!("[Container] PID: {}", child);
 
                 match waitpid(child, None).expect("waitpid faild") {
                     WaitStatus::Exited(_, _) => {}
@@ -63,13 +87,11 @@ impl Container {
                 }
             }
             Ok(ForkResult::Child) => {
-                sethostname(&self.name).expect("Could not set hostname");
-
                 fs::create_dir_all("proc").unwrap_or_else(|why| {
                     eprintln!("{:?}", why.kind());
                 });
 
-                info!("Mount procfs ... ");
+                info!("[Container] Mount procfs ... ");
                 mounts::mount_proc().expect("mount procfs failed");
 
                 let cmd = CString::new(self.command.clone()).unwrap();
@@ -85,7 +107,7 @@ impl Container {
                 )
                 .expect("execution faild.");
             }
-            Err(_) => error!("Fork failed"),
+            Err(_) => panic!("Fork failed"),
         }
     }
 
