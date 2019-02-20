@@ -7,7 +7,7 @@ use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, fork, getpid, getuid, ForkResult, Uid};
 use nix::unistd::{execve, sethostname};
 
-use log::{error, info};
+use log::info;
 
 use super::image::Image;
 use super::mounts;
@@ -107,7 +107,7 @@ impl Container {
                 )
                 .expect("execution faild.");
             }
-            Err(_) => panic!("Fork failed"),
+            Err(e) => panic!("Fork failed: {}", e),
         }
     }
 
