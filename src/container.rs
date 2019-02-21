@@ -4,7 +4,7 @@ use std::io::prelude::*;
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, fork, getpid, getuid, ForkResult, Uid};
+use nix::unistd::{chdir, chroot, fork, getgid, getpid, getuid, ForkResult, Gid, Uid};
 use nix::unistd::{execve, sethostname};
 
 use log::info;
@@ -17,6 +17,7 @@ pub struct Container {
     pub command: String,
     pub image: Image,
     pub host_uid: Uid,
+    pub host_gid: Gid,
 }
 
 impl Container {
@@ -26,22 +27,35 @@ impl Container {
             command,
             image: Image::new(name),
             host_uid: getuid(),
+            host_gid: getgid(),
         }
     }
 
     fn uid_map(&self) -> std::io::Result<()> {
         let mut file = File::create("/proc/self/uid_map")?;
-
         let uid_map = format!("0 {} 1", self.host_uid);
 
-        file.write_all(b"0 1000 1")?;
+        file.write_all(uid_map.as_bytes())?;
         info!("[Host] wrote {} /proc/self/uid_map", uid_map);
         Ok(())
     }
 
+    fn gid_map(&self) -> std::io::Result<()> {
+        let mut file = File::create("/proc/self/gid_map")?;
+        info!("[Host] open(2) /proc/self/gid_map done.");
+        let gid_map = format!("0 {} 1", self.host_gid);
+
+        info!("[Host] GID: {}", self.host_gid);
+        info!("[Host] GID MAP: {}", gid_map);
+
+        file.write_all(gid_map.as_bytes())?;
+        info!("[Host] wrote {} /proc/self/gid_map", gid_map);
+        Ok(())
+    }
+
     fn guid_map(&self) -> std::io::Result<()> {
-        self.uid_map().expect("Failed write uid_map");
-        // self.gid_map().expect("Failed write gid_map");
+        self.uid_map().expect("Failed to write uid_map");
+        self.gid_map().expect("Failed to write gid_map");
         Ok(())
     }
 
@@ -77,7 +91,7 @@ impl Container {
     pub fn run(&self) {
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
-                info!("[HOST] PID: {}", getpid());
+                info!("[Host] PID: {}", getpid());
                 info!("[Container] PID: {}", child);
 
                 match waitpid(child, None).expect("waitpid faild") {
