@@ -32,23 +32,23 @@ impl Container {
     }
 
     fn uid_map(&self) -> std::io::Result<()> {
-        let mut file = File::create("/proc/self/uid_map")?;
+        let mut uid_map_file = File::create("/proc/self/uid_map")?;
         let uid_map = format!("0 {} 1", self.host_uid);
 
-        file.write_all(uid_map.as_bytes())?;
+        uid_map_file.write_all(uid_map.as_bytes())?;
         info!("[Host] wrote {} /proc/self/uid_map", uid_map);
         Ok(())
     }
 
     fn gid_map(&self) -> std::io::Result<()> {
-        let mut file = File::create("/proc/self/gid_map")?;
+        let mut setgroups_file = File::create("/proc/self/setgroups")?;
+        setgroups_file.write_all("deny".as_bytes())?;
+
+        let mut gid_map_file = File::create("/proc/self/gid_map")?;
         info!("[Host] open(2) /proc/self/gid_map done.");
         let gid_map = format!("0 {} 1", self.host_gid);
 
-        info!("[Host] GID: {}", self.host_gid);
-        info!("[Host] GID MAP: {}", gid_map);
-
-        file.write_all(gid_map.as_bytes())?;
+        gid_map_file.write_all(gid_map.as_bytes())?;
         info!("[Host] wrote {} /proc/self/gid_map", gid_map);
         Ok(())
     }
