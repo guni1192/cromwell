@@ -1,5 +1,7 @@
 use clap::ArgMatches;
 
+use nix::unistd::daemon;
+
 use super::container;
 use super::image::Image;
 
@@ -17,7 +19,14 @@ pub fn run(sub_m: &ArgMatches) {
     let mut container = container::Container::new(container_name, command);
 
     if sub_m.is_present("del") {
-        container.delete().expect("Faild to remove container: ");
+        container.delete().expect("Failed to remove container: ");
+    }
+
+    // daemonize
+    if sub_m.is_present("daemonize_flag") {
+        // nochdir, close tty
+        println!("become daemon");
+        daemon(true, false).expect("cannot become daemon");
     }
 
     container.prepare();

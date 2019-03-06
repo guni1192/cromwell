@@ -53,6 +53,11 @@ fn main() {
                         .long("path")
                         .help("specify container path")
                         .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("daemonize_flag")
+                        .short("d")
+                        .help("daemonize flag"),
                 ),
         )
         .subcommand(
