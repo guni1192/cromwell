@@ -40,5 +40,5 @@ pub fn pull(sub_m: &ArgMatches) {
         .expect("invalied arguments about image name");
 
     let mut image = Image::new(image_name);
-    image.pull().expect("Failed to image pull");
+    // image.pull().expect("Failed to image pull");
 }

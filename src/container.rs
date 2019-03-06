@@ -13,6 +13,7 @@ use super::image::Image;
 use super::mounts;
 
 pub struct Container {
+    pub id: String,
     pub name: String,
     pub command: String,
     pub image: Image,
@@ -23,6 +24,7 @@ pub struct Container {
 impl Container {
     pub fn new(name: &str, command: String) -> Container {
         Container {
+            id: "hogeeeeeeeeeeeeeeeee".to_string(),
             name: name.to_string(),
             command,
             image: Image::new(name),
@@ -60,10 +62,10 @@ impl Container {
     }
 
     pub fn prepare(&mut self) {
-        self.image.pull().expect("Failed to cromwell pull");
+        self.image.pull(&self.id).expect("Failed to cromwell pull");
 
-        let c_hosts = format!("{}/etc/hosts", self.image.get_full_path());
-        let c_resolv = format!("{}/etc/resolv.conf", self.image.get_full_path());
+        let c_hosts = format!("{}/etc/hosts", self.image.get_full_path(&self.id));
+        let c_resolv = format!("{}/etc/resolv.conf", self.image.get_full_path(&self.id));
 
         fs::copy("/etc/hosts", &c_hosts).expect("Failed copy /etc/hosts");
         info!("[Host] Copied /etc/hosts to {}", c_hosts);
@@ -82,7 +84,7 @@ impl Container {
         self.guid_map()
             .expect("Failed to write /proc/self/gid_map|uid_map");
 
-        chroot(self.image.get_full_path().as_str()).expect("chroot failed.");
+        chroot(self.image.get_full_path(&self.id).as_str()).expect("chroot failed.");
         chdir("/").expect("cd / failed.");
 
         sethostname(&self.name).expect("Could not set hostname");
@@ -112,7 +114,8 @@ impl Container {
                 let default_shell = CString::new("/bin/sh").unwrap();
                 let shell_opt = CString::new("-c").unwrap();
                 let lang = CString::new("LC_ALL=C").unwrap();
-                let path = CString::new("PATH=/bin/:/usr/bin/:/usr/local/bin:/sbin").unwrap();
+                let path =
+                    CString::new("PATH=/bin/:/usr/bin/:/usr/local/bin:/sbin:/usr/sbin").unwrap();
 
                 execve(
                     &default_shell,
@@ -126,7 +129,7 @@ impl Container {
     }
 
     pub fn delete(&self) -> std::io::Result<()> {
-        fs::remove_dir_all(&self.image.get_full_path())
+        fs::remove_dir_all(&self.image.get_full_path(&self.id))
     }
 }
 
