@@ -1,11 +1,15 @@
 use std::ffi::CString;
 use std::fs::{self, File};
 use std::io::prelude::*;
+use std::iter;
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, fork, getgid, getpid, getuid, ForkResult, Gid, Uid};
 use nix::unistd::{execve, sethostname};
+
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 
 use log::info;
 
@@ -23,8 +27,14 @@ pub struct Container {
 
 impl Container {
     pub fn new(name: &str, command: String) -> Container {
+        let mut rng = thread_rng();
+        let id: String = iter::repeat(())
+            .map(|()| rng.sample(Alphanumeric))
+            .take(16)
+            .collect();
+
         Container {
-            id: "hogeeeeeeeeeeeeeeeee".to_string(),
+            id: id,
             name: name.to_string(),
             command,
             image: Image::new(name),
