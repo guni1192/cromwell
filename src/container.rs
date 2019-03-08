@@ -34,7 +34,7 @@ impl Container {
             .collect();
 
         Container {
-            id: id,
+            id,
             name: name.to_string(),
             command,
             image: Image::new(name),

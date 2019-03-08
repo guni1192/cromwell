@@ -55,10 +55,10 @@ impl Image {
 
         for file in ar.entries().unwrap() {
             let mut file = file.unwrap();
-            match file.unpack_in(&image_path) {
-                Ok(_) => {}
-                Err(_) => {} // Ignore Err when file Already Exist
+            if file.unpack_in(&image_path).is_ok() {
+                continue;
             };
+            info!("{:?} is already exist", file.path());
         }
         info!("archived layer {}", path);
 
