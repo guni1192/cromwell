@@ -4,7 +4,7 @@ use std::path::Path;
 
 use flate2::read::GzDecoder;
 
-use log::{error, info};
+use log::info;
 
 use reqwest;
 
@@ -39,7 +39,7 @@ impl Image {
         format!("{}/{}", self.config.image_path, container_id)
     }
 
-    pub fn build_from_tar(&mut self, path: &str, container_id: &str) -> io::Result<()> {
+    pub fn build_from_tar(&self, path: &str, container_id: &str) -> io::Result<()> {
         info!("tar unpack start {}", path);
 
         let tar_gz = File::open(&path).expect("");
@@ -49,7 +49,6 @@ impl Image {
         let image_path = format!("{}/{}", self.config.image_path, container_id);
 
         if !Path::new(&image_path).exists() {
-            //  fs::remove_dir_all(&image_path)?;
             info!("mkdir {}", image_path);
             std::fs::create_dir(&image_path)?;
         }
@@ -106,10 +105,8 @@ impl Image {
         match &body["fsLayers"] {
             Value::Array(fs_layers) => {
                 for fs_layer in fs_layers {
-                    match self.download(token.to_string(), &fs_layer, container_id) {
-                        Ok(_) => info!("image download successed"),
-                        Err(e) => error!("{}", e),
-                    }
+                    self.download(token, &fs_layer, container_id)
+                        .expect("download failed");
                 }
             }
             _ => eprintln!("unexpected type fsLayers"),
@@ -118,12 +115,7 @@ impl Image {
         Ok(())
     }
 
-    fn download(
-        &mut self,
-        token: String,
-        fs_layer: &Value,
-        container_id: &str,
-    ) -> std::io::Result<()> {
+    fn download(&self, token: &str, fs_layer: &Value, container_id: &str) -> std::io::Result<()> {
         if let Value::String(blob_sum) = &fs_layer["blobSum"] {
             let out_filename = format!("/tmp/{}.tar.gz", blob_sum.replace("sha256:", ""));
 
