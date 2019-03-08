@@ -7,6 +7,7 @@ use std::process::exit;
 use clap::{crate_name, crate_version, App, Arg, SubCommand};
 
 mod bootstrap;
+mod cgroups;
 mod commands;
 mod config;
 mod container;

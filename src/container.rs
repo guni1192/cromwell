@@ -13,6 +13,7 @@ use rand::{thread_rng, Rng};
 
 use log::info;
 
+use super::cgroups::apply_cgroups;
 use super::image::Image;
 use super::mounts;
 
@@ -87,9 +88,12 @@ impl Container {
             CloneFlags::CLONE_NEWPID
                 | CloneFlags::CLONE_NEWUTS
                 | CloneFlags::CLONE_NEWNS
+                | CloneFlags::CLONE_NEWCGROUP
                 | CloneFlags::CLONE_NEWUSER,
         )
         .expect("Can not unshare(2).");
+
+        apply_cgroups(getpid());
 
         self.guid_map()
             .expect("Failed to write /proc/self/gid_map|uid_map");
