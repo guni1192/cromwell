@@ -112,6 +112,9 @@ impl Image {
             _ => eprintln!("unexpected type fsLayers"),
         }
 
+        self.put_config_json(container_id)
+            .expect("cannnot put jsno");
+
         Ok(())
     }
 
@@ -140,8 +143,6 @@ impl Image {
             io::copy(&mut res, &mut out)?;
             self.build_from_tar(&out_filename, container_id)
                 .expect("cannnot build from tar");
-            self.put_config_json(container_id)
-                .expect("cannnot put jsno");
         } else {
             return Err(Error::new(
                 ErrorKind::Other,
