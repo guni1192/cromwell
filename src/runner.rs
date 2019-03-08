@@ -1,6 +1,11 @@
+use std::iter;
+
 use clap::ArgMatches;
 
 use nix::unistd::daemon;
+
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 
 use super::container;
 use super::image::Image;
@@ -39,6 +44,12 @@ pub fn pull(sub_m: &ArgMatches) {
         .value_of("image_name")
         .expect("invalied arguments about image name");
 
+    let mut rng = thread_rng();
+    let id: String = iter::repeat(())
+        .map(|()| rng.sample(Alphanumeric))
+        .take(16)
+        .collect();
     let mut image = Image::new(image_name);
-    // image.pull().expect("Failed to image pull");
+
+    image.pull(&id).expect("Failed to image pull");
 }

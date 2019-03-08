@@ -1,4 +1,4 @@
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
@@ -17,7 +17,6 @@ use super::config::Config;
 #[warn(unused_imports)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Image {
-    pub id: String,
     name: String,
     tag: String,
     pub config: Config,
@@ -32,7 +31,6 @@ impl Image {
         Image {
             name: n[0].to_string(),
             tag: n[1].to_string(),
-            id: "".to_string(),
             config: Config::new(None),
         }
     }
@@ -68,11 +66,11 @@ impl Image {
         Ok(())
     }
 
-    pub fn put_config_json(&self) -> std::io::Result<()> {
+    pub fn put_config_json(&self, container_id: &str) -> std::io::Result<()> {
         let json_str = serde_json::to_string(&self)?;
         let json_bytes = json_str.as_bytes();
 
-        let image_path = format!("{}/{}/config.json", self.config.image_path, self.id);
+        let image_path = format!("{}/{}/config.json", self.config.image_path, container_id);
         let mut file = File::create(image_path)?;
         file.write_all(json_bytes)?;
 
@@ -148,10 +146,10 @@ impl Image {
             let mut out = File::create(&out_filename)?;
 
             io::copy(&mut res, &mut out)?;
-            // TODO: Tar Archive
             self.build_from_tar(&out_filename, container_id)
                 .expect("cannnot build from tar");
-            self.put_config_json().expect("cannnot put jsno");
+            self.put_config_json(container_id)
+                .expect("cannnot put jsno");
         } else {
             return Err(Error::new(
                 ErrorKind::Other,
