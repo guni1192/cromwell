@@ -5,7 +5,7 @@ use cgroups::{hierarchies, Cgroup, CgroupPid, Controller};
 use nix::pty::SessionId;
 use nix::unistd::Pid;
 
-pub fn apply_cgroups(pid: Pid) {
+pub fn apply(pid: Pid) {
     let v1 = hierarchies::V1::new();
     let cgroup: Cgroup = CgroupBuilder::new("vagrant", &v1).cpu().done().build();
 
@@ -13,7 +13,7 @@ pub fn apply_cgroups(pid: Pid) {
         .controller_of()
         .expect("Could not get cpu controller");
 
-    cpus.set_cfs_period(100000)
+    cpus.set_cfs_period(100_000)
         .expect("Could not set_cfs_period");
     cpus.set_cfs_quota(30000).expect("Could not set_cfs_quota");
 

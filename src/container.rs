@@ -13,7 +13,7 @@ use rand::{thread_rng, Rng};
 
 use log::info;
 
-use super::cgroups::apply_cgroups;
+use super::cgroups;
 use super::image::Image;
 use super::mounts;
 
@@ -93,7 +93,7 @@ impl Container {
         )
         .expect("Can not unshare(2).");
 
-        apply_cgroups(getpid());
+        cgroups::apply(getpid());
 
         self.guid_map()
             .expect("Failed to write /proc/self/gid_map|uid_map");
