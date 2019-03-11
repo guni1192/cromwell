@@ -120,7 +120,7 @@ impl Container {
         chroot(self.image.get_full_path(&self.id).as_str()).expect("chroot failed.");
         chdir("/").expect("cd / failed.");
 
-        sethostname(&self.name).expect("Could not set hostname");
+        sethostname(&self.id).expect("Could not set hostname");
     }
 
     pub fn run(&self) {
@@ -174,7 +174,7 @@ mod tests {
     fn test_init_container() {
         let image_name = "library/alpine:3.8";
         let command = "/bin/bash".to_string();
-        let container = Container::new(image_name, command.clone());
+        let container = Container::new(image_name, command.clone(), None);
         assert_eq!(container.command, command);
     }
 }
