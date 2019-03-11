@@ -21,7 +21,9 @@ pub fn run(sub_m: &ArgMatches) {
         .value_of("container_name")
         .expect("invalied arguments about container name");
 
-    let mut container = container::Container::new(container_name, command);
+    let container_path = sub_m.value_of("container_path");
+
+    let mut container = container::Container::new(container_name, command, container_path);
 
     if sub_m.is_present("del") {
         container.delete().expect("Failed to remove container: ");

@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::iter;
+use std::path::Path;
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
@@ -23,11 +24,30 @@ pub struct Container {
     pub image: Image,
     pub host_uid: Uid,
     pub host_gid: Gid,
+    pub path: String, // for --path option
 }
 
 impl Container {
-    pub fn new(name: &str, command: String) -> Container {
+    pub fn new(name: &str, command: String, path: Option<&str>) -> Container {
         let mut rng = thread_rng();
+
+        if let Some(path) = path {
+            return Container {
+                id: Path::new(path)
+                    .file_stem()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+                name: name.to_string(),
+                command,
+                image: Image::new(name),
+                host_uid: getuid(),
+                host_gid: getgid(),
+                path: path.to_string(),
+            };
+        }
+
         let id: String = iter::repeat(())
             .map(|()| rng.sample(Alphanumeric))
             .take(16)
@@ -40,6 +60,7 @@ impl Container {
             image: Image::new(name),
             host_uid: getuid(),
             host_gid: getgid(),
+            path: "".to_string(),
         }
     }
 
@@ -72,16 +93,18 @@ impl Container {
     }
 
     pub fn prepare(&mut self) {
-        self.image.pull(&self.id).expect("Failed to cromwell pull");
+        if self.path == "" {
+            self.image.pull(&self.id).expect("Failed to cromwell pull");
 
-        let c_hosts = format!("{}/etc/hosts", self.image.get_full_path(&self.id));
-        let c_resolv = format!("{}/etc/resolv.conf", self.image.get_full_path(&self.id));
+            let c_hosts = format!("{}/etc/hosts", self.image.get_full_path(&self.id));
+            let c_resolv = format!("{}/etc/resolv.conf", self.image.get_full_path(&self.id));
 
-        fs::copy("/etc/hosts", &c_hosts).expect("Failed copy /etc/hosts");
-        info!("[Host] Copied /etc/hosts to {}", c_hosts);
+            fs::copy("/etc/hosts", &c_hosts).expect("Failed copy /etc/hosts");
+            info!("[Host] Copied /etc/hosts to {}", c_hosts);
 
-        fs::copy("/etc/resolv.conf", &c_resolv).expect("Failed copy /etc/resolv.conf");
-        info!("[Host] Copied /etc/resolv.conf {}", c_resolv);
+            fs::copy("/etc/resolv.conf", &c_resolv).expect("Failed copy /etc/resolv.conf");
+            info!("[Host] Copied /etc/resolv.conf {}", c_resolv);
+        }
 
         unshare(
             CloneFlags::CLONE_NEWPID
