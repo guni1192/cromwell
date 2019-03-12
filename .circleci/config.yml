@@ -3,7 +3,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: rust:1.31
+      - image: rust:1.33
     steps:
       - checkout
       - restore_cache:
