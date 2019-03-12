@@ -2,11 +2,10 @@ use std::ffi::CString;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::iter;
-use std::path::Path;
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, fork, getgid, getpid, getuid, ForkResult, Gid, Uid};
+use nix::unistd::{chdir, chroot, daemon, fork, getgid, getpid, getuid, ForkResult, Gid, Uid};
 use nix::unistd::{execve, sethostname};
 
 use rand::distributions::Alphanumeric;
@@ -14,37 +13,38 @@ use rand::{thread_rng, Rng};
 
 use log::info;
 
+use super::config::Config;
 use super::image::Image;
 use super::mounts;
 
 pub struct Container {
-    pub id: String,
-    pub name: String,
-    pub command: String,
-    pub image: Image,
-    pub host_uid: Uid,
-    pub host_gid: Gid,
-    pub path: String, // for --path option
+    id: String,
+    command: String,
+    image: Option<Image>,
+    host_uid: Uid,
+    host_gid: Gid,
+    become_daemon: bool,
+    config: Config,
 }
 
 impl Container {
-    pub fn new(name: &str, command: String, path: Option<&str>) -> Container {
+    pub fn new(
+        image_name: Option<&str>,
+        command: &str,
+        path: Option<&str>,
+        become_daemon: bool,
+    ) -> Container {
         let mut rng = thread_rng();
 
-        if let Some(path) = path {
+        if let Some(id) = path {
             return Container {
-                id: Path::new(path)
-                    .file_stem()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_string(),
-                name: name.to_string(),
-                command,
-                image: Image::new(name),
+                id: id.to_string(),
+                command: command.to_string(),
+                image: None,
                 host_uid: getuid(),
                 host_gid: getgid(),
-                path: path.to_string(),
+                become_daemon,
+                config: Config::new(None),
             };
         }
 
@@ -55,12 +55,12 @@ impl Container {
 
         Container {
             id,
-            name: name.to_string(),
-            command,
-            image: Image::new(name),
+            command: command.to_string(),
+            image: Some(Image::new(image_name.unwrap())),
             host_uid: getuid(),
             host_gid: getgid(),
-            path: "".to_string(),
+            become_daemon,
+            config: Config::new(None),
         }
     }
 
@@ -92,18 +92,28 @@ impl Container {
         Ok(())
     }
 
-    pub fn prepare(&mut self) {
-        if self.path == "" {
-            self.image.pull(&self.id).expect("Failed to cromwell pull");
+    fn get_full_path(&self) -> String {
+        format!("{}/{}", self.config.container_path, self.id)
+    }
 
-            let c_hosts = format!("{}/etc/hosts", self.image.get_full_path(&self.id));
-            let c_resolv = format!("{}/etc/resolv.conf", self.image.get_full_path(&self.id));
+    pub fn prepare(&mut self) {
+        // specify Image name
+        if let Some(image) = &mut self.image {
+            image.pull(&self.id).expect("Failed to cromwell pull");
+
+            let c_hosts = format!("{}/etc/hosts", image.get_full_path(&self.id));
+            let c_resolv = format!("{}/etc/resolv.conf", image.get_full_path(&self.id));
 
             fs::copy("/etc/hosts", &c_hosts).expect("Failed copy /etc/hosts");
             info!("[Host] Copied /etc/hosts to {}", c_hosts);
 
             fs::copy("/etc/resolv.conf", &c_resolv).expect("Failed copy /etc/resolv.conf");
             info!("[Host] Copied /etc/resolv.conf {}", c_resolv);
+        }
+
+        // nochdir, close tty
+        if self.become_daemon {
+            daemon(true, false).expect("cannot become daemon");
         }
 
         unshare(
@@ -117,7 +127,7 @@ impl Container {
         self.guid_map()
             .expect("Failed to write /proc/self/gid_map|uid_map");
 
-        chroot(self.image.get_full_path(&self.id).as_str()).expect("chroot failed.");
+        chroot(self.get_full_path().as_str()).expect("chroot failed.");
         chdir("/").expect("cd / failed.");
 
         sethostname(&self.id).expect("Could not set hostname");
@@ -155,14 +165,14 @@ impl Container {
                     &[default_shell.clone(), shell_opt, cmd],
                     &[lang, path],
                 )
-                .expect("execution faild.");
+                .expect("execution failed.");
             }
             Err(e) => panic!("Fork failed: {}", e),
         }
     }
 
     pub fn delete(&self) -> std::io::Result<()> {
-        fs::remove_dir_all(&self.image.get_full_path(&self.id))
+        fs::remove_dir_all(&self.get_full_path())
     }
 }
 
@@ -173,8 +183,8 @@ mod tests {
     #[test]
     fn test_init_container() {
         let image_name = "library/alpine:3.8";
-        let command = "/bin/bash".to_string();
-        let container = Container::new(image_name, command.clone(), None);
+        let command = "/bin/bash";
+        let container = Container::new(Some(image_name), &command, None, false);
         assert_eq!(container.command, command);
     }
 }

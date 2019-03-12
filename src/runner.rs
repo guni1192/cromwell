@@ -2,38 +2,29 @@ use std::iter;
 
 use clap::ArgMatches;
 
-use nix::unistd::daemon;
-
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
 use super::container;
 use super::image::Image;
 
-// TODO: deamonize option
 pub fn run(sub_m: &ArgMatches) {
     let command = match sub_m.value_of("exec_command") {
-        Some(c) => c.to_string(),
-        None => "/bin/sh".to_string(),
+        Some(c) => c,
+        None => "/bin/sh",
     };
 
-    let container_name = sub_m
-        .value_of("container_name")
-        .expect("invalied arguments about container name");
+    let container_name = sub_m.value_of("container_name");
 
     let container_path = sub_m.value_of("container_path");
 
-    let mut container = container::Container::new(container_name, command, container_path);
+    let become_daemon = sub_m.is_present("daemonize_flag");
+
+    let mut container =
+        container::Container::new(container_name, &command, container_path, become_daemon);
 
     if sub_m.is_present("del") {
         container.delete().expect("Failed to remove container: ");
-    }
-
-    // daemonize
-    if sub_m.is_present("daemonize_flag") {
-        // nochdir, close tty
-        println!("become daemon");
-        daemon(true, false).expect("cannot become daemon");
     }
 
     container.prepare();

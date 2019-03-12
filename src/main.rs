@@ -33,7 +33,6 @@ fn main() {
                         .long("name")
                         .short("n")
                         .help("Specify container name")
-                        .required(true)
                         .takes_value(true),
                 )
                 .arg(

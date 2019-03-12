@@ -6,6 +6,7 @@ use dirs::home_dir;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub image_path: String,
+    pub container_path: String,
 }
 
 impl Config {
@@ -24,6 +25,7 @@ impl Config {
 
         Config {
             image_path: path_str.to_string(),
+            container_path: path_str.to_string(),
         }
     }
 }
