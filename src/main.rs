@@ -1,7 +1,8 @@
 #[macro_use]
 extern crate serde_derive;
 extern crate env_logger;
-
+#[macro_use]
+extern crate prettytable;
 use std::process::exit;
 
 use clap::{crate_name, crate_version, App, Arg, SubCommand};
@@ -13,6 +14,7 @@ mod container;
 mod image;
 mod mounts;
 mod network;
+mod pids;
 mod runner;
 
 fn main() {
@@ -72,11 +74,19 @@ fn main() {
                         .takes_value(true),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("ps")
+                .version(crate_version!())
+                .about("show containers"),
+        )
         .get_matches();
+
+    let config = config::Config::new(None);
 
     match &app_matches.subcommand() {
         ("run", Some(sub_m)) => runner::run(&sub_m),
         ("pull", Some(sub_m)) => runner::pull(&sub_m),
+        ("ps", Some(sub_m)) => pids::show(&sub_m, config).expect("cannot get container processes"),
         _ => {
             eprintln!("Unexpected arguments");
             app.print_help().unwrap();

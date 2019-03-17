@@ -5,6 +5,7 @@ use dirs::home_dir;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
+    pub base_dir: String,
     pub image_path: String,
     pub container_path: String,
 }
@@ -13,6 +14,7 @@ impl Config {
     pub fn new(path: Option<&str>) -> Self {
         let home = home_dir().unwrap();
         let home = home.to_str().expect("Could not PathBuf to str");
+        let base_dir = format!("{}/.cromwell", home);
         let default_path = format!("{}/.cromwell/containers", home);
 
         let path_str = path.unwrap_or(&default_path);
@@ -24,6 +26,7 @@ impl Config {
         }
 
         Config {
+            base_dir,
             image_path: path_str.to_string(),
             container_path: path_str.to_string(),
         }
