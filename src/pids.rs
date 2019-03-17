@@ -16,8 +16,8 @@ pub fn show(_sub_m: &ArgMatches, config: Config) -> io::Result<()> {
 
     table.add_row(row!["Container ID", "PID"]);
 
-    let image_path = format!("{}/pids", config.base_dir);
-    let pid_dir = Path::new(&image_path);
+    let pids_path = format!("{}/pids", config.base_dir);
+    let pid_dir = Path::new(&pids_path);
 
     if pid_dir.is_dir() {
         for entry in fs::read_dir(pid_dir)? {

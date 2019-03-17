@@ -136,10 +136,10 @@ impl Container {
                 info!("[Host] PID: {}", getpid());
                 info!("[Container] PID: {}", child);
 
-                let pids = "/home/vagrant/.cromwell/pids";
-                fs::create_dir_all(pids).expect("failed mkdir pids");
+                let pids_path = format!("{}/pids", self.config.base_dir);
+                fs::create_dir_all(&pids_path).expect("failed mkdir pids");
 
-                let pidfile_path = format!("{}/{}", pids, self.id);
+                let pidfile_path = format!("{}/{}.pid", pids_path, self.id);
                 let pidfile_path = Path::new(&pidfile_path);
 
                 Pidfile::create(&pidfile_path, child).expect("Failed to create pidfile");
