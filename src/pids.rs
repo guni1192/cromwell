@@ -1,16 +1,18 @@
+use std::fs;
+use std::io;
 use std::path::Path;
 
 use clap::ArgMatches;
-use prettytable::{Cell, Row, Table};
+use prettytable::Table;
 
 use nix::unistd::Pid;
 
-pub fn show(sub_m: &ArgMatches) {
+pub fn show(_sub_m: &ArgMatches) {
     // Create the table
     let mut table = Table::new();
 
     table.add_row(row!["Container ID", "PID"]);
-    for i in 0..3 {
+    for _ in 0..3 {
         let pidfile = Pidfile::read(Path::new("/hoge"));
         table.add_row(row![pidfile.name, pidfile.pid]);
     }
@@ -18,12 +20,20 @@ pub fn show(sub_m: &ArgMatches) {
     table.printstd();
 }
 
-struct Pidfile {
+pub struct Pidfile {
     pid: Pid,
-    name: String,
+    name: String, // Container.ID
 }
 
 impl Pidfile {
+    pub fn create(path: &Path, pid: Pid) -> io::Result<()> {
+        fs::write(path, pid.to_string().as_bytes())
+    }
+
+    pub fn delete(path: &Path) -> io::Result<()> {
+        fs::remove_file(path)
+    }
+
     fn read(path: &Path) -> Self {
         Pidfile {
             pid: Pid::from_raw(1000),

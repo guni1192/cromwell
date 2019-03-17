@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::iter;
+use std::path::Path;
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
@@ -16,6 +17,7 @@ use log::info;
 use super::config::Config;
 use super::image::Image;
 use super::mounts;
+use super::pids::Pidfile;
 
 pub struct Container {
     id: String,
@@ -126,11 +128,6 @@ impl Container {
 
         self.guid_map()
             .expect("Failed to write /proc/self/gid_map|uid_map");
-
-        chroot(self.get_full_path().as_str()).expect("chroot failed.");
-        chdir("/").expect("cd / failed.");
-
-        sethostname(&self.id).expect("Could not set hostname");
     }
 
     pub fn run(&self) {
@@ -139,13 +136,28 @@ impl Container {
                 info!("[Host] PID: {}", getpid());
                 info!("[Container] PID: {}", child);
 
+                let pids = "/home/vagrant/.cromwell/pids";
+                fs::create_dir_all(pids).expect("failed mkdir pids");
+
+                let pidfile_path = format!("{}/{}", pids, self.id);
+                let pidfile_path = Path::new(&pidfile_path);
+                println!("{:?}", pidfile_path);
+
+                Pidfile::create(&pidfile_path, child).expect("Failed to create pidfile");
+
                 match waitpid(child, None).expect("waitpid faild") {
-                    WaitStatus::Exited(_, _) => {}
+                    WaitStatus::Exited(_, _) => {
+                        Pidfile::delete(&pidfile_path).expect("Failed to remove pidfile");
+                    }
                     WaitStatus::Signaled(_, _, _) => {}
                     _ => eprintln!("Unexpected exit."),
                 }
             }
             Ok(ForkResult::Child) => {
+                chroot(self.get_full_path().as_str()).expect("chroot failed.");
+                chdir("/").expect("cd / failed.");
+
+                sethostname(&self.id).expect("Could not set hostname");
                 fs::create_dir_all("proc").unwrap_or_else(|why| {
                     eprintln!("{:?}", why.kind());
                 });
