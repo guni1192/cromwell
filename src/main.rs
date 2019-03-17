@@ -81,10 +81,12 @@ fn main() {
         )
         .get_matches();
 
+    let config = config::Config::new(None);
+
     match &app_matches.subcommand() {
         ("run", Some(sub_m)) => runner::run(&sub_m),
         ("pull", Some(sub_m)) => runner::pull(&sub_m),
-        ("ps", Some(sub_m)) => pids::show(&sub_m),
+        ("ps", Some(sub_m)) => pids::show(&sub_m, config).expect("cannot get container processes"),
         _ => {
             eprintln!("Unexpected arguments");
             app.print_help().unwrap();

@@ -3,26 +3,40 @@ use std::io;
 use std::path::Path;
 
 use clap::ArgMatches;
+
 use prettytable::Table;
 
 use nix::unistd::Pid;
 
-pub fn show(_sub_m: &ArgMatches) {
+use super::config::Config;
+
+pub fn show(_sub_m: &ArgMatches, config: Config) -> io::Result<()> {
     // Create the table
     let mut table = Table::new();
 
     table.add_row(row!["Container ID", "PID"]);
-    for _ in 0..3 {
-        let pidfile = Pidfile::read(Path::new("/hoge"));
-        table.add_row(row![pidfile.name, pidfile.pid]);
-    }
 
+    let image_path = format!("{}/pids", config.base_dir);
+    let pid_dir = Path::new(&image_path);
+
+    if pid_dir.is_dir() {
+        for entry in fs::read_dir(pid_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                continue;
+            }
+            let pidfile = Pidfile::read(&path).expect("Failed to read pidfile");
+            table.add_row(row![pidfile.container_id, pidfile.pid]);
+        }
+    }
     table.printstd();
+    Ok(())
 }
 
 pub struct Pidfile {
     pid: Pid,
-    name: String, // Container.ID
+    container_id: String, // as file_name
 }
 
 impl Pidfile {
@@ -34,10 +48,14 @@ impl Pidfile {
         fs::remove_file(path)
     }
 
-    fn read(path: &Path) -> Self {
-        Pidfile {
-            pid: Pid::from_raw(1000),
-            name: "library/alpine:latest".to_string(),
-        }
+    fn read(path: &Path) -> io::Result<Pidfile> {
+        let pid: i32 = fs::read_to_string(path).unwrap().parse().unwrap();
+        let pid = Pid::from_raw(pid);
+        let container_id = path.file_stem().unwrap().to_str().unwrap();
+
+        Ok(Pidfile {
+            pid,
+            container_id: container_id.to_string(),
+        })
     }
 }

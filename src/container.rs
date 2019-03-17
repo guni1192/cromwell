@@ -141,7 +141,6 @@ impl Container {
 
                 let pidfile_path = format!("{}/{}", pids, self.id);
                 let pidfile_path = Path::new(&pidfile_path);
-                println!("{:?}", pidfile_path);
 
                 Pidfile::create(&pidfile_path, child).expect("Failed to create pidfile");
 
