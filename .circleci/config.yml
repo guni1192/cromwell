@@ -9,6 +9,25 @@ jobs:
       - restore_cache:
           key: cache
       - run:
+          name: Build
+          command: |
+            rustc --version --verbose
+            cargo --version --verbose
+            cargo build --verbose
+      - save_cache:
+          key: cache
+          paths:
+          - ~/.cargo
+          - ./target
+
+  lint:
+    docker:
+      - image: rust:1.33
+    steps:
+      - checkout
+      - restore_cache:
+          key: cache
+      - run:
           name: Check formatting
           command: |
             rustup component add rustfmt-preview
@@ -19,12 +38,19 @@ jobs:
           command: |
             rustup component add clippy
             cargo clippy -- -D warnings
-      - run:
-          name: Build
-          command: |
-            rustc --version --verbose
-            cargo --version --verbose
-            cargo build --verbose
+      - save_cache:
+          key: cache
+          paths:
+          - ~/.cargo
+          - ./target
+
+  test:
+    docker:
+      - image: rust:1.33
+    steps:
+      - checkout
+      - restore_cache:
+          key: cache
       - run:
           name: Test
           command: cargo test --verbose
@@ -36,9 +62,10 @@ jobs:
 
 workflows:
   version: 2
-  build:
+  build_and_test:
     jobs:
+      - lint:
       - build:
-          filters:
-            branches:
-              only: /.*/
+      - test:
+          requires:
+            - build
