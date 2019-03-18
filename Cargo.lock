@@ -194,7 +194,7 @@ dependencies = [
 
 [[package]]
 name = "cromwell"
-version = "0.1.5-alpha.0"
+version = "0.1.5"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
