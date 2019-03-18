@@ -17,8 +17,8 @@ jobs:
       - save_cache:
           key: cache
           paths:
-          - ~/.cargo
-          - ./target
+            - ~/.cargo
+            - ./target
 
   lint:
     docker:
@@ -41,8 +41,8 @@ jobs:
       - save_cache:
           key: cache
           paths:
-          - ~/.cargo
-          - ./target
+            - ~/.cargo
+            - ./target
 
   test:
     docker:
@@ -57,15 +57,15 @@ jobs:
       - save_cache:
           key: cache
           paths:
-          - ~/.cargo
-          - ./target
+            - ~/.cargo
+            - ./target
 
 workflows:
   version: 2
   build_and_test:
     jobs:
-      - lint:
       - build:
+      - lint:
       - test:
           requires:
             - build
