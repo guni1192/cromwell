@@ -44,6 +44,7 @@ FLAGS:
 
 SUBCOMMANDS:
     help    Prints this message or the help of the given subcommand(s)
+    ps      show containers
     pull    pull oci image
     run     run cromwell container
 ```
