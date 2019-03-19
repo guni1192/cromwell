@@ -51,7 +51,7 @@ impl Container {
         }
 
         let id: String = iter::repeat(())
-            .map(|()| rng.sample(Alphanumeric))
+            .map(|_| rng.sample(Alphanumeric))
             .take(16)
             .collect();
 
