@@ -56,9 +56,10 @@ impl Container {
 
         let id: String = iter::repeat(())
             .map(|()| rng.sample(Alphanumeric))
-            .take(16)
+            .take(8)
             .collect();
 
+        // network interface name length must be less than 14
         let network_name = format!("{}-tap", id);
 
         Container {
@@ -125,11 +126,11 @@ impl Container {
             daemon(true, false).expect("cannot become daemon");
         }
 
-        // | CloneFlags::CLONE_NEWNET
         unshare(
             CloneFlags::CLONE_NEWPID
                 | CloneFlags::CLONE_NEWUTS
                 | CloneFlags::CLONE_NEWNS
+                | CloneFlags::CLONE_NEWNET
                 | CloneFlags::CLONE_NEWUSER,
         )
         .expect("Can not unshare(2).");
@@ -148,7 +149,7 @@ impl Container {
                 let pidfile_path = Path::new(&pidfile_path);
 
                 Pidfile::create(&pidfile_path, child).expect("Failed to create pidfile");
-                // self.network.run(child).expect("cannot run network");
+                self.network.run(child).expect("cannot run network");
 
                 match waitpid(child, None).expect("waitpid faild") {
                     WaitStatus::Exited(_, _) => {
@@ -174,8 +175,6 @@ impl Container {
                 mounts::mount_proc().expect("mount procfs failed");
 
                 let cmd = CString::new(self.command.clone()).unwrap();
-                let default_shell = CString::new("/bin/sh").unwrap();
-                let shell_opt = CString::new("-c").unwrap();
                 let lang = CString::new("LC_ALL=C").unwrap();
                 let path =
                     CString::new("PATH=/bin/:/usr/bin/:/usr/local/bin:/sbin:/usr/sbin").unwrap();
