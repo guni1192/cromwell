@@ -17,6 +17,7 @@ use log::info;
 use super::config::Config;
 use super::image::Image;
 use super::mounts;
+use super::network::Network;
 use super::pids::Pidfile;
 
 pub struct Container {
@@ -27,6 +28,7 @@ pub struct Container {
     host_gid: Gid,
     become_daemon: bool,
     config: Config,
+    network: Network,
 }
 
 impl Container {
@@ -39,6 +41,7 @@ impl Container {
         let mut rng = thread_rng();
 
         if let Some(id) = path {
+            let network_name = format!("{}-tap", id);
             return Container {
                 id: id.to_string(),
                 command: command.to_string(),
@@ -47,6 +50,7 @@ impl Container {
                 host_gid: getgid(),
                 become_daemon,
                 config: Config::new(None),
+                network: Network::new(&network_name),
             };
         }
 
@@ -55,14 +59,17 @@ impl Container {
             .take(16)
             .collect();
 
+        let network_name = format!("{}-tap", id);
+
         Container {
-            id,
+            id: id.clone(),
             command: command.to_string(),
             image: Some(Image::new(image_name.unwrap())),
             host_uid: getuid(),
             host_gid: getgid(),
             become_daemon,
             config: Config::new(None),
+            network: Network::new(&network_name),
         }
     }
 
@@ -118,6 +125,7 @@ impl Container {
             daemon(true, false).expect("cannot become daemon");
         }
 
+        // | CloneFlags::CLONE_NEWNET
         unshare(
             CloneFlags::CLONE_NEWPID
                 | CloneFlags::CLONE_NEWUTS
@@ -125,9 +133,6 @@ impl Container {
                 | CloneFlags::CLONE_NEWUSER,
         )
         .expect("Can not unshare(2).");
-
-        self.guid_map()
-            .expect("Failed to write /proc/self/gid_map|uid_map");
     }
 
     pub fn run(&self) {
@@ -143,6 +148,7 @@ impl Container {
                 let pidfile_path = Path::new(&pidfile_path);
 
                 Pidfile::create(&pidfile_path, child).expect("Failed to create pidfile");
+                // self.network.run(child).expect("cannot run network");
 
                 match waitpid(child, None).expect("waitpid faild") {
                     WaitStatus::Exited(_, _) => {
@@ -153,6 +159,9 @@ impl Container {
                 }
             }
             Ok(ForkResult::Child) => {
+                self.guid_map()
+                    .expect("Failed to write /proc/self/{gid_map,uid_map}");
+
                 chroot(self.get_full_path().as_str()).expect("chroot failed.");
                 chdir("/").expect("cd / failed.");
 
@@ -171,12 +180,7 @@ impl Container {
                 let path =
                     CString::new("PATH=/bin/:/usr/bin/:/usr/local/bin:/sbin:/usr/sbin").unwrap();
 
-                execve(
-                    &default_shell,
-                    &[default_shell.clone(), shell_opt, cmd],
-                    &[lang, path],
-                )
-                .expect("execution failed.");
+                execve(&cmd.clone(), &[cmd], &[lang, path]).expect("execution failed.");
             }
             Err(e) => panic!("Fork failed: {}", e),
         }
