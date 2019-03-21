@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
@@ -65,13 +65,15 @@ impl Image {
         Ok(())
     }
 
-    pub fn put_config_json(&self, container_id: &str) -> std::io::Result<()> {
-        let json_str = serde_json::to_string(&self)?;
-        let json_bytes = json_str.as_bytes();
+    pub fn put_config_json(&self, manifests: String, container_id: &str) -> std::io::Result<()> {
+        let manifests = manifests.as_bytes();
 
-        let image_path = format!("{}/{}/config.json", self.config.image_path, container_id);
-        let mut file = File::create(image_path)?;
-        file.write_all(json_bytes)?;
+        let config_path = format!("{}/{}/cromwell", self.config.image_path, container_id);
+        fs::create_dir_all(&config_path).expect("Cannot create CONTAINER_PATH/cromwell/");
+
+        let mut file = File::create(config_path + "/config.json")?;
+        file.write_all(manifests)?;
+        // TODO: parse manifests.history.v1Compatibility
 
         Ok(())
     }
@@ -102,6 +104,8 @@ impl Image {
 
         let body: Value = serde_json::from_str(res.as_str()).expect("parse json failed");
 
+        let manifests = serde_json::to_string(&body).expect("Cannot convert Value to string");
+
         match &body["fsLayers"] {
             Value::Array(fs_layers) => {
                 for fs_layer in fs_layers {
@@ -112,7 +116,7 @@ impl Image {
             _ => eprintln!("unexpected type fsLayers"),
         }
 
-        self.put_config_json(container_id)
+        self.put_config_json(manifests, container_id)
             .expect("cannnot put jsno");
 
         Ok(())
