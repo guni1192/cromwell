@@ -38,22 +38,13 @@ impl Container {
     ) -> Container {
         let mut rng = thread_rng();
 
-        if let Some(id) = path {
-            return Container {
-                id: id.to_string(),
-                command: command.to_string(),
-                image: None,
-                host_uid: getuid(),
-                host_gid: getgid(),
-                become_daemon,
-                config: Config::new(None),
-            };
-        }
-
-        let id: String = iter::repeat(())
-            .map(|_| rng.sample(Alphanumeric))
-            .take(16)
-            .collect();
+        let id: String = match path {
+            Some(id) => id.to_string(),
+            None => iter::repeat(())
+                .map(|()| rng.sample(Alphanumeric))
+                .take(8)
+                .collect::<String>(),
+        };
 
         Container {
             id,
