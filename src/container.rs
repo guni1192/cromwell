@@ -31,25 +31,26 @@ pub struct Container {
 
 impl Container {
     pub fn new(
-        image_name: Option<&str>,
+        image: Option<Image>,
         command: &str,
         path: Option<&str>,
         become_daemon: bool,
     ) -> Container {
-        let mut rng = thread_rng();
-
         let id: String = match path {
             Some(id) => id.to_string(),
-            None => iter::repeat(())
-                .map(|()| rng.sample(Alphanumeric))
-                .take(8)
-                .collect::<String>(),
+            None => {
+                let mut rng = thread_rng();
+                iter::repeat(())
+                    .map(|()| rng.sample(Alphanumeric))
+                    .take(8)
+                    .collect::<String>()
+            }
         };
 
         Container {
             id,
             command: command.to_string(),
-            image: Some(Image::new(image_name.unwrap())),
+            image,
             host_uid: getuid(),
             host_gid: getgid(),
             become_daemon,

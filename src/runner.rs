@@ -14,14 +14,17 @@ pub fn run(sub_m: &ArgMatches) {
         None => "/bin/sh",
     };
 
-    let container_name = sub_m.value_of("container_name");
+    let image_name = sub_m.value_of("container_name");
+    let image = match image_name {
+        Some(name) => Some(Image::new(name)),
+        None => None,
+    };
 
     let container_path = sub_m.value_of("container_path");
 
     let become_daemon = sub_m.is_present("daemonize_flag");
 
-    let mut container =
-        container::Container::new(container_name, &command, container_path, become_daemon);
+    let mut container = container::Container::new(image, &command, container_path, become_daemon);
 
     if sub_m.is_present("del") {
         container.delete().expect("Failed to remove container: ");
