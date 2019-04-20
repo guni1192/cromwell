@@ -1,12 +1,8 @@
-use std::iter;
-
 use clap::ArgMatches;
-
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 
 use super::container;
 use super::image::Image;
+use super::process::Process;
 
 pub fn run(sub_m: &ArgMatches) {
     let command = match sub_m.value_of("exec_command") {
@@ -24,15 +20,21 @@ pub fn run(sub_m: &ArgMatches) {
 
     let become_daemon = sub_m.is_present("daemonize_flag");
 
-    let mut container = container::Container::new(image, &command, container_path, become_daemon);
+    let mut container = container::Container::new(image, container_path);
 
     if sub_m.is_present("del") {
         container.delete().expect("Failed to remove container: ");
     }
 
-    container.prepare();
+    let process = Process::new(
+        command,
+        format!("/home/vagrant/.cromwell/containers/{}", container.id),
+        become_daemon,
+        Vec::<String>::new(),
+    );
 
-    container.run();
+    container.prepare(&process);
+    container.run(&process);
 }
 
 pub fn pull(sub_m: &ArgMatches) {
@@ -40,12 +42,7 @@ pub fn pull(sub_m: &ArgMatches) {
         .value_of("image_name")
         .expect("invalied arguments about image name");
 
-    let mut rng = thread_rng();
-    let id: String = iter::repeat(())
-        .map(|()| rng.sample(Alphanumeric))
-        .take(16)
-        .collect();
     let mut image = Image::new(image_name);
 
-    image.pull(&id).expect("Failed to image pull");
+    image.pull().expect("Failed to image pull");
 }
