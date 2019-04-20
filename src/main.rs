@@ -15,6 +15,7 @@ mod network;
 mod pids;
 mod process;
 mod runner;
+mod utils;
 
 fn main() {
     env_logger::init();

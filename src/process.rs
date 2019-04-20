@@ -3,7 +3,7 @@ use std::ffi::CString;
 use nix::unistd::{getgid, getuid, Gid, Uid};
 
 pub struct Process {
-    pub cmd: String,
+    pub cmd: Vec<CString>,
     pub host_uid: Uid,
     pub host_gid: Gid,
     pub cwd: String,
@@ -12,12 +12,12 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn new(cmd: &str, cwd: String, become_daemon: bool, env: Vec<CString>) -> Self {
+    pub fn new(cmd: Vec<CString>, cwd: String, become_daemon: bool, env: Vec<CString>) -> Self {
         Process {
             cwd,
             env,
             become_daemon,
-            cmd: cmd.to_string(),
+            cmd,
             host_uid: getuid(),
             host_gid: getgid(),
         }

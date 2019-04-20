@@ -1,4 +1,3 @@
-use std::ffi::CString;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::iter;
@@ -143,16 +142,7 @@ impl Container {
                 info!("[Container] Mount procfs ... ");
                 mounts::mount_proc().expect("mount procfs failed");
 
-                let cmd = CString::new(process.cmd.clone()).unwrap();
-                let default_shell = CString::new("/bin/sh").unwrap();
-                let shell_opt = CString::new("-c").unwrap();
-
-                execve(
-                    &default_shell,
-                    &[default_shell.clone(), shell_opt, cmd],
-                    &process.env,
-                )
-                .expect("execution failed.");
+                execve(&process.cmd[0], &process.cmd, &process.env).expect("execution failed.");
             }
             Err(e) => panic!("Fork failed: {}", e),
         }
