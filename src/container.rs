@@ -9,12 +9,13 @@ use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{chdir, chroot, daemon, fork, getpid, ForkResult, Gid, Uid};
 use nix::unistd::{execve, sethostname};
 
+use dirs::home_dir;
+
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
 use log::info;
 
-use super::config::Config;
 use super::image::Image;
 use super::mounts;
 use super::pids::Pidfile;
@@ -23,7 +24,6 @@ use super::process::Process;
 pub struct Container {
     pub id: String,
     image: Option<Image>,
-    config: Config,
 }
 
 impl Container {
@@ -39,11 +39,7 @@ impl Container {
             }
         };
 
-        Container {
-            id,
-            image,
-            config: Config::new(None),
-        }
+        Container { id, image }
     }
 
     fn uid_map(&self, uid: Uid) -> std::io::Result<()> {
@@ -74,10 +70,6 @@ impl Container {
         self.gid_map(process.host_gid)
             .expect("Failed to write gid_map");
         Ok(())
-    }
-
-    fn get_full_path(&self) -> String {
-        format!("{}/{}", self.config.container_path, self.id)
     }
 
     pub fn prepare(&mut self, process: &Process) {
@@ -121,7 +113,9 @@ impl Container {
                 info!("[Host] PID: {}", getpid());
                 info!("[Container] PID: {}", child);
 
-                let pids_path = format!("{}/pids", self.config.base_dir);
+                let home = home_dir().expect("Could not get your home_dir");
+                let home = home.to_str().expect("Could not PathBuf to str");
+                let pids_path = format!("{}/.cromwell/pids", home);
                 fs::create_dir_all(&pids_path).expect("failed mkdir pids");
 
                 let pidfile_path = format!("{}/{}.pid", pids_path, self.id);
@@ -152,14 +146,11 @@ impl Container {
                 let cmd = CString::new(process.cmd.clone()).unwrap();
                 let default_shell = CString::new("/bin/sh").unwrap();
                 let shell_opt = CString::new("-c").unwrap();
-                let lang = CString::new("LC_ALL=C").unwrap();
-                let path =
-                    CString::new("PATH=/bin/:/usr/bin/:/usr/local/bin:/sbin:/usr/sbin").unwrap();
 
                 execve(
                     &default_shell,
                     &[default_shell.clone(), shell_opt, cmd],
-                    &[lang, path],
+                    &process.env,
                 )
                 .expect("execution failed.");
             }
@@ -167,8 +158,8 @@ impl Container {
         }
     }
 
-    pub fn delete(&self) -> std::io::Result<()> {
-        fs::remove_dir_all(&self.get_full_path())
+    pub fn delete(&self, process: &Process) -> std::io::Result<()> {
+        fs::remove_dir_all(&process.cwd)
     }
 }
 
