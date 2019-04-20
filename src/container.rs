@@ -1,4 +1,3 @@
-use std::ffi::CString;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::iter;
@@ -6,36 +5,28 @@ use std::path::Path;
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, daemon, fork, getgid, getpid, getuid, ForkResult, Gid, Uid};
+use nix::unistd::{chdir, chroot, daemon, fork, getpid, ForkResult, Gid, Uid};
 use nix::unistd::{execve, sethostname};
+
+use dirs::home_dir;
 
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
 use log::info;
 
-use super::config::Config;
 use super::image::Image;
 use super::mounts;
 use super::pids::Pidfile;
+use super::process::Process;
 
 pub struct Container {
-    id: String,
-    command: String,
+    pub id: String,
     image: Option<Image>,
-    host_uid: Uid,
-    host_gid: Gid,
-    become_daemon: bool,
-    config: Config,
 }
 
 impl Container {
-    pub fn new(
-        image: Option<Image>,
-        command: &str,
-        path: Option<&str>,
-        become_daemon: bool,
-    ) -> Container {
+    pub fn new(image: Option<Image>, path: Option<&str>) -> Container {
         let id: String = match path {
             Some(id) => id.to_string(),
             None => {
@@ -47,56 +38,49 @@ impl Container {
             }
         };
 
-        Container {
-            id,
-            command: command.to_string(),
-            image,
-            host_uid: getuid(),
-            host_gid: getgid(),
-            become_daemon,
-            config: Config::new(None),
-        }
+        Container { id, image }
     }
 
-    fn uid_map(&self) -> std::io::Result<()> {
+    fn uid_map(&self, uid: Uid) -> std::io::Result<()> {
         let mut uid_map_file = File::create("/proc/self/uid_map")?;
-        let uid_map = format!("0 {} 1", self.host_uid);
+        let uid_map = format!("0 {} 1", uid);
 
         uid_map_file.write_all(uid_map.as_bytes())?;
         info!("[Host] wrote {} /proc/self/uid_map", uid_map);
         Ok(())
     }
 
-    fn gid_map(&self) -> std::io::Result<()> {
+    fn gid_map(&self, gid: Gid) -> std::io::Result<()> {
         let mut setgroups_file = File::create("/proc/self/setgroups")?;
         setgroups_file.write_all(b"deny")?;
 
         let mut gid_map_file = File::create("/proc/self/gid_map")?;
         info!("[Host] open(2) /proc/self/gid_map done.");
-        let gid_map = format!("0 {} 1", self.host_gid);
+        let gid_map = format!("0 {} 1", gid);
 
         gid_map_file.write_all(gid_map.as_bytes())?;
         info!("[Host] wrote {} /proc/self/gid_map", gid_map);
         Ok(())
     }
 
-    fn guid_map(&self) -> std::io::Result<()> {
-        self.uid_map().expect("Failed to write uid_map");
-        self.gid_map().expect("Failed to write gid_map");
+    fn guid_map(&self, process: &Process) -> std::io::Result<()> {
+        self.uid_map(process.host_uid)
+            .expect("Failed to write uid_map");
+        self.gid_map(process.host_gid)
+            .expect("Failed to write gid_map");
         Ok(())
     }
 
-    fn get_full_path(&self) -> String {
-        format!("{}/{}", self.config.container_path, self.id)
-    }
-
-    pub fn prepare(&mut self) {
+    pub fn prepare(&mut self, process: &Process) {
         // specify Image name
         if let Some(image) = &mut self.image {
-            image.pull(&self.id).expect("Failed to cromwell pull");
+            image.pull().expect("Failed to cromwell pull");
+            image
+                .build_from_tar(&process.cwd)
+                .expect("Failed build image from fsLayer");
 
-            let c_hosts = format!("{}/etc/hosts", image.get_full_path(&self.id));
-            let c_resolv = format!("{}/etc/resolv.conf", image.get_full_path(&self.id));
+            let c_hosts = format!("{}/etc/hosts", process.cwd);
+            let c_resolv = format!("{}/etc/resolv.conf", process.cwd);
 
             fs::copy("/etc/hosts", &c_hosts).expect("Failed copy /etc/hosts");
             info!("[Host] Copied /etc/hosts to {}", c_hosts);
@@ -106,7 +90,7 @@ impl Container {
         }
 
         // nochdir, close tty
-        if self.become_daemon {
+        if process.become_daemon {
             daemon(true, false).expect("cannot become daemon");
         }
 
@@ -118,17 +102,19 @@ impl Container {
         )
         .expect("Can not unshare(2).");
 
-        self.guid_map()
+        self.guid_map(&process)
             .expect("Failed to write /proc/self/gid_map|uid_map");
     }
 
-    pub fn run(&self) {
+    pub fn run(&self, process: &Process) {
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
                 info!("[Host] PID: {}", getpid());
                 info!("[Container] PID: {}", child);
 
-                let pids_path = format!("{}/pids", self.config.base_dir);
+                let home = home_dir().expect("Could not get your home_dir");
+                let home = home.to_str().expect("Could not PathBuf to str");
+                let pids_path = format!("{}/.cromwell/pids", home);
                 fs::create_dir_all(&pids_path).expect("failed mkdir pids");
 
                 let pidfile_path = format!("{}/{}.pid", pids_path, self.id);
@@ -145,7 +131,7 @@ impl Container {
                 }
             }
             Ok(ForkResult::Child) => {
-                chroot(self.get_full_path().as_str()).expect("chroot failed.");
+                chroot(Path::new(&process.cwd)).expect("chroot failed.");
                 chdir("/").expect("cd / failed.");
 
                 sethostname(&self.id).expect("Could not set hostname");
@@ -156,26 +142,14 @@ impl Container {
                 info!("[Container] Mount procfs ... ");
                 mounts::mount_proc().expect("mount procfs failed");
 
-                let cmd = CString::new(self.command.clone()).unwrap();
-                let default_shell = CString::new("/bin/sh").unwrap();
-                let shell_opt = CString::new("-c").unwrap();
-                let lang = CString::new("LC_ALL=C").unwrap();
-                let path =
-                    CString::new("PATH=/bin/:/usr/bin/:/usr/local/bin:/sbin:/usr/sbin").unwrap();
-
-                execve(
-                    &default_shell,
-                    &[default_shell.clone(), shell_opt, cmd],
-                    &[lang, path],
-                )
-                .expect("execution failed.");
+                execve(&process.cmd[0], &process.cmd, &process.env).expect("execution failed.");
             }
             Err(e) => panic!("Fork failed: {}", e),
         }
     }
 
-    pub fn delete(&self) -> std::io::Result<()> {
-        fs::remove_dir_all(&self.get_full_path())
+    pub fn delete(&self, process: &Process) -> std::io::Result<()> {
+        fs::remove_dir_all(&process.cwd)
     }
 }
 
@@ -185,9 +159,12 @@ mod tests {
 
     #[test]
     fn test_init_container() {
-        let image_name = "library/alpine:3.8";
-        let command = "/bin/bash";
-        let container = Container::new(Some(image_name), &command, None, false);
-        assert_eq!(container.command, command);
+        let image_name = Some("library/alpine:3.8");
+        let image = match image_name {
+            Some(name) => Some(Image::new(name)),
+            None => None,
+        };
+        let container = Container::new(image, None);
+        assert_eq!(container.id.len(), 8);
     }
 }

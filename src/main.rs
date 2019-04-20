@@ -8,13 +8,14 @@ use std::process::exit;
 use clap::{crate_name, crate_version, App, Arg, SubCommand};
 
 mod commands;
-mod config;
 mod container;
 mod image;
 mod mounts;
 mod network;
 mod pids;
+mod process;
 mod runner;
+mod utils;
 
 fn main() {
     env_logger::init();
@@ -80,12 +81,10 @@ fn main() {
         )
         .get_matches();
 
-    let config = config::Config::new(None);
-
     match &app_matches.subcommand() {
         ("run", Some(sub_m)) => runner::run(&sub_m),
         ("pull", Some(sub_m)) => runner::pull(&sub_m),
-        ("ps", Some(sub_m)) => pids::show(&sub_m, config).expect("cannot get container processes"),
+        ("ps", Some(sub_m)) => pids::show(&sub_m).expect("cannot get container processes"),
         _ => {
             eprintln!("Unexpected arguments");
             app.print_help().unwrap();

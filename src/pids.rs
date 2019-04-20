@@ -3,20 +3,20 @@ use std::io;
 use std::path::Path;
 
 use clap::ArgMatches;
-
+use dirs::home_dir;
+use nix::unistd::Pid;
 use prettytable::Table;
 
-use nix::unistd::Pid;
-
-use super::config::Config;
-
-pub fn show(_sub_m: &ArgMatches, config: Config) -> io::Result<()> {
+pub fn show(_sub_m: &ArgMatches) -> io::Result<()> {
     // Create the table
     let mut table = Table::new();
 
     table.add_row(row!["Container ID", "PID"]);
 
-    let pids_path = format!("{}/pids", config.base_dir);
+    let home = home_dir().expect("Could not get your home_dir");
+    let home = home.to_str().expect("Could not PathBuf to str");
+    let pids_path = format!("{}/.cromwell/pids", home);
+
     let pid_dir = Path::new(&pids_path);
 
     if pid_dir.is_dir() {
@@ -34,11 +34,13 @@ pub fn show(_sub_m: &ArgMatches, config: Config) -> io::Result<()> {
     Ok(())
 }
 
+// TODO: Integrate Process
 pub struct Pidfile {
     pid: Pid,
     container_id: String, // as file_name
 }
 
+// TODO: for Process
 impl Pidfile {
     pub fn create(path: &Path, pid: Pid) -> io::Result<()> {
         fs::write(path, pid.to_string().as_bytes())
