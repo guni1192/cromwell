@@ -36,7 +36,7 @@ impl Image {
 
             if !Path::new(dst_path).exists() {
                 info!("mkdir {}", dst_path);
-                std::fs::create_dir(dst_path)?;
+                std::fs::create_dir_all(dst_path)?;
             }
 
             archive.unpack(dst_path)?;

@@ -33,7 +33,7 @@ pub fn run(sub_m: &ArgMatches) {
     // TODO: followr runtime-spec in spec-go.Process
     let process = Process::new(
         vec_cstr![command],
-        format!("{}/{}", container_dir, container.id),
+        format!("{}/{}/rootfs", container_dir, container.id),
         become_daemon,
         // Example environment
         vec_cstr![
