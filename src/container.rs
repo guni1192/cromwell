@@ -23,11 +23,12 @@ use super::process::Process;
 
 pub struct Container {
     pub id: String,
-    image: Option<Image>,
-    state: State,
+    pub image: Option<Image>,
+    pub state: State,
 }
 
 // Container State
+#[derive(Debug, PartialEq)]
 pub enum State {
     Creating,
     Created,
@@ -184,5 +185,9 @@ mod tests {
         };
         let container = Container::new(image, None);
         assert_eq!(container.id.len(), 8);
+        assert_eq!(container.state, State::Stopped);
+        assert!(container.image.is_some());
+        let image = container.image.expect("Image was not set");
+        assert_eq!(image.name, "library/alpine");
     }
 }
