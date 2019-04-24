@@ -5,7 +5,7 @@ use std::path::Path;
 use clap::ArgMatches;
 use dirs::home_dir;
 use nix::unistd::Pid;
-use prettytable::Table;
+use prettytable::{cell, row, Table};
 
 pub fn show(_sub_m: &ArgMatches) -> io::Result<()> {
     // Create the table

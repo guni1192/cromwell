@@ -8,7 +8,6 @@ use reqwest;
 use serde_json::{self, Value};
 use tar::Archive;
 
-#[derive(Serialize, Deserialize, Debug)]
 pub struct Image {
     pub name: String,
     pub tag: String,

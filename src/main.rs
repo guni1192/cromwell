@@ -1,8 +1,3 @@
-#[macro_use]
-extern crate serde_derive;
-extern crate env_logger;
-#[macro_use]
-extern crate prettytable;
 use std::process::exit;
 
 use clap::{crate_name, crate_version, App, Arg, SubCommand};
