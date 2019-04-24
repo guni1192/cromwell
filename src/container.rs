@@ -10,6 +10,7 @@ use nix::unistd::{execve, sethostname};
 
 use dirs::home_dir;
 
+// for generate container.id
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
@@ -22,7 +23,17 @@ use super::process::Process;
 
 pub struct Container {
     pub id: String,
-    image: Option<Image>,
+    pub image: Option<Image>,
+    pub state: State,
+}
+
+// Container State
+#[derive(Debug, PartialEq)]
+pub enum State {
+    Creating,
+    Created,
+    Running,
+    Stopped,
 }
 
 impl Container {
@@ -38,7 +49,11 @@ impl Container {
             }
         };
 
-        Container { id, image }
+        Container {
+            id,
+            image,
+            state: State::Stopped,
+        }
     }
 
     fn uid_map(&self, uid: Uid) -> std::io::Result<()> {
@@ -74,6 +89,7 @@ impl Container {
     pub fn prepare(&mut self, process: &Process) {
         // specify Image name
         if let Some(image) = &mut self.image {
+            self.state = State::Creating;
             image.pull().expect("Failed to cromwell pull");
             image
                 .build_from_tar(&process.cwd)
@@ -104,9 +120,10 @@ impl Container {
 
         self.guid_map(&process)
             .expect("Failed to write /proc/self/gid_map|uid_map");
+        self.state = State::Created;
     }
 
-    pub fn run(&self, process: &Process) {
+    pub fn run(&mut self, process: &Process) {
         match fork() {
             Ok(ForkResult::Parent { child, .. }) => {
                 info!("[Host] PID: {}", getpid());
@@ -125,12 +142,14 @@ impl Container {
                 match waitpid(child, None).expect("waitpid faild") {
                     WaitStatus::Exited(_, _) => {
                         Pidfile::delete(&pidfile_path).expect("Failed to remove pidfile");
+                        self.state = State::Stopped;
                     }
                     WaitStatus::Signaled(_, _, _) => {}
                     _ => eprintln!("Unexpected exit."),
                 }
             }
             Ok(ForkResult::Child) => {
+                self.state = State::Running;
                 chroot(Path::new(&process.cwd)).expect("chroot failed.");
                 chdir("/").expect("cd / failed.");
 
@@ -166,5 +185,9 @@ mod tests {
         };
         let container = Container::new(image, None);
         assert_eq!(container.id.len(), 8);
+        assert_eq!(container.state, State::Stopped);
+        assert!(container.image.is_some());
+        let image = container.image.expect("Image was not set");
+        assert_eq!(image.name, "library/alpine");
     }
 }

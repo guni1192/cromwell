@@ -10,9 +10,9 @@ use tar::Archive;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Image {
-    name: String,
-    tag: String,
-    fs_layers: Vec<String>,
+    pub name: String,
+    pub tag: String,
+    pub fs_layers: Vec<String>,
 }
 
 impl Image {
