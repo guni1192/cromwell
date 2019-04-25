@@ -7,7 +7,7 @@ use dirs::home_dir;
 use nix::unistd::Pid;
 
 pub fn show(_sub_m: &ArgMatches) -> io::Result<()> {
-    println!("|{} \t| {} \t|", "Container ID", "PID");
+    println!("|Container ID \t| PID \t|");
 
     let home = home_dir().expect("Could not get your home_dir");
     let home = home.to_str().expect("Could not PathBuf to str");
