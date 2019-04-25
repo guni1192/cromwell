@@ -5,13 +5,9 @@ use std::path::Path;
 use clap::ArgMatches;
 use dirs::home_dir;
 use nix::unistd::Pid;
-use prettytable::{cell, row, Table};
 
 pub fn show(_sub_m: &ArgMatches) -> io::Result<()> {
-    // Create the table
-    let mut table = Table::new();
-
-    table.add_row(row!["Container ID", "PID"]);
+    println!("|{} \t| {} \t|", "Container ID", "PID");
 
     let home = home_dir().expect("Could not get your home_dir");
     let home = home.to_str().expect("Could not PathBuf to str");
@@ -27,10 +23,9 @@ pub fn show(_sub_m: &ArgMatches) -> io::Result<()> {
                 continue;
             }
             let pidfile = Pidfile::read(&path).expect("Failed to read pidfile");
-            table.add_row(row![pidfile.container_id, pidfile.pid]);
+            println!("|{} \t| {} \t|", pidfile.container_id, pidfile.pid);
         }
     }
-    table.printstd();
     Ok(())
 }
 
