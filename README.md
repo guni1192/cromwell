@@ -1,8 +1,8 @@
 # Cromwell
 
 [![CircleCI](https://circleci.com/gh/guni1192/cromwell/tree/master.svg?style=svg)](https://circleci.com/gh/guni1192/cromwell/tree/master)
-![crates.io](https://img.shields.io/crates/v/cromwell.svg)
-![docs](https://docs.rs/cromwell/badge.svg)
+[![crates.io](https://img.shields.io/crates/v/cromwell.svg)](https://crates.io/crates/cromwell)
+[![docs](https://docs.rs/cromwell/badge.svg)](https://docs.rs/crate/cromwell/)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
 
 Rust Rootless Container Runntime
